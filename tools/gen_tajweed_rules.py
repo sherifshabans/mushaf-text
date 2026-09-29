@@ -339,7 +339,7 @@ ORDER_NOTE = """**ترتيب التعريف محمول.** فيكسشر التط�
 أي حكم جديد يُضاف في الآخر."""
 
 
-def gen_kotlin(package, with_english):
+def gen_kotlin(package, with_english, with_hit=True):
     o = io.StringIO()
     o.write("package %s\n\n" % package)
     o.write("import androidx.compose.ui.graphics.Color\n\n")
@@ -410,6 +410,9 @@ data class TajweedSpan(
     val rule: TajweedRule
 )
 
+""")
+    if with_hit:
+        o.write("""
 /**
  * لمسة على حرف ملوّن.
  *
@@ -539,7 +542,8 @@ class TajweedSpan {
 TARGETS = [
     (os.path.join(ROOT, "mushaf", "src", "main", "java", "io", "github",
                   "sherifshabans", "mushaf", "TajweedRules.kt"),
-     lambda: gen_kotlin("io.github.sherifshabans.mushaf", True)),
+     lambda: gen_kotlin("io.github.sherifshabans.mushaf", True,
+                        with_hit=False)),
     (os.path.join(ROOT, "flutter", "lib", "src", "tajweed_rule.dart"),
      gen_dart),
 ]

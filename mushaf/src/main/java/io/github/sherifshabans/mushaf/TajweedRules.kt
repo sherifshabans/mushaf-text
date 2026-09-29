@@ -295,15 +295,3 @@ data class TajweedSpan(
     val rule: TajweedRule
 )
 
-/**
- * لمسة على حرف ملوّن.
- *
- * تحمل الكلمة ومدى الحرف داخلها لتعرض ورقةُ الشرح **المثالَ الذي لمسه القارئ
- * بنفسه** لا مثالًا عامًّا — أن يرى الحكم في كلمته أوضح من أي شرح.
- */
-data class TajweedHit(
-    val rule: TajweedRule,
-    val word: String,
-    val start: Int,
-    val end: Int
-)
