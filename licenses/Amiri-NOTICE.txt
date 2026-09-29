@@ -1,0 +1,6 @@
+Amiri (sample app only)
+Files: sample/src/main/res/font/amiri_regular.ttf, amiri_bold.ttf
+
+Copyright 2010-2022 The Amiri Project Authors (https://github.com/aliftype/amiri).
+Licensed under the SIL Open Font License, Version 1.1 — https://openfontlicense.org
+(the licence is also embedded in each font file's name table). Bundled unmodified.
