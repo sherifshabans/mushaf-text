@@ -6,3 +6,9 @@ local.properties
 .DS_Store
 captures/
 .kotlin/
+
+# Flutter package
+flutter/.dart_tool/
+flutter/.packages
+flutter/pubspec.lock
+flutter/build/
