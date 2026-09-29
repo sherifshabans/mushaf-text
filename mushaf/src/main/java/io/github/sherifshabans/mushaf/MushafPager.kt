@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -104,8 +105,15 @@ fun MushafPager(
     }
 }
 
-private fun chromeStyle(colors: MushafColors) =
-    TextStyle(fontFamily = MushafFont, fontSize = 15.sp, color = colors.marker)
+/**
+ * خط رأس الصفحة وتذييلها.
+ *
+ * الأرقام (الجزء والصفحة) **لازم** تتكتب بخط غير خط المصحف: خط المصحف بيحوّل أي
+ * رَنّ أرقام عربية لوردة آية (رابطة `rlig`)، فرقم الصفحة كان بيطلع جوّه وردة.
+ * اتشاف على الموبايل مش في الـharness، لأن الـharness بيصوّر `MushafPage` لوحدها.
+ */
+private fun chromeStyle(colors: MushafColors, font: FontFamily = FontFamily.Default) =
+    TextStyle(fontFamily = font, fontSize = 15.sp, color = colors.marker)
 
 @Composable
 private fun PageHeader(ayahs: List<Ayah>?, colors: MushafColors) {
@@ -118,7 +126,7 @@ private fun PageHeader(ayahs: List<Ayah>?, colors: MushafColors) {
         ) {
             BasicText(
                 text = first?.let { "سُورَةُ " + Quran.surah(it.surah).nameArabic } ?: "",
-                style = chromeStyle(colors)
+                style = chromeStyle(colors, MushafFont)
             )
             BasicText(
                 text = first?.let { "الجزء " + toArabicDigits(it.juz) } ?: "",

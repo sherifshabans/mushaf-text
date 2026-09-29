@@ -38,7 +38,7 @@ dependencyResolutionManagement {
 
 ```kotlin
 dependencies {
-    implementation("com.github.sherifshabans:mushaf-text:1.0.0")
+    implementation("com.github.sherifshabans:mushaf-text:1.0.1")
 }
 ```
 
@@ -46,7 +46,7 @@ Groovy (`build.gradle`):
 
 ```groovy
 repositories { maven { url 'https://jitpack.io' } }
-dependencies { implementation 'com.github.sherifshabans:mushaf-text:1.0.0' }
+dependencies { implementation 'com.github.sherifshabans:mushaf-text:1.0.1' }
 ```
 
 متطلبات: `minSdk 21`، Jetpack Compose. المكتبة بتزوّد التطبيق حوالي ١٫٧ ميجا
