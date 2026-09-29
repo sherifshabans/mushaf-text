@@ -1,35 +1,73 @@
+## 1.1.1
+
+توثيق بالعربي والإنجليزي، بلا أي تغيير في الكود.
+
+Documentation in Arabic and English, with no code change.
+
+- صار الـREADME ثنائيَّ اللغة بالكامل: كل فقرة بالعربي وبالإنجليزي، بما فيها
+  جدول علامات الرسم وقائمة المراجع والتنبيه على أن الصياغة لم يراجعها قارئ
+  مُجاز بعد.
+  <br>*The README is now fully bilingual — every section in Arabic and English,
+  including the notation table, the list of references, and the note that the
+  wording has not yet been reviewed by a qualified reciter.*
+
 ## 1.1.0
 
-Every tajweed rule now names the reference it comes from, and the code is
-tested against those references rather than against itself.
+صار كلُّ حكمٍ يسمّي مرجعه، وصار الكود يُحاكَم إلى تلك المراجع لا إلى نفسه.
 
-- `TajweedRule` gains `source` and `evidence`: the matn, the verse number, and
-  the verse in its own words. تحفة الأطفال for the noon, meem, lām and madd
+Every tajweed rule now names the reference it comes from, and the code is tested
+against those references rather than against itself.
+
+- `TajweedRule` اكتسب `source` و`evidence`: المتن، ورقم البيت، والبيت بنصّه.
+  تحفة الأطفال لأحكام النون والميم ولام «أل» والمدود، والمقدمة الجزرية للقلقلة
+  والغنّة، ودليل ضبط مجمّع الملك فهد للأحكام الثلاثة التي لا يغطّيها المتنان —
+  وهي تقول ذلك عن نفسها.
+  <br>*`TajweedRule` gains `source` and `evidence`: the matn, the verse number,
+  and the verse in its own words. تحفة الأطفال for the noon, meem, lām and madd
   rules; المقدمة الجزرية for qalqalah and ghunnah; the King Fahd Complex's own
-  notation guide for the three rules neither matn covers — which say so.
-- `pageTajweedCounts(page)` — how many words on a page carry each rule, counted
-  the same way the focus frame steps through them.
-- **Fixed:** the extra alef was described as «الصفر المستدير» and «لا يُنطق».
-  Both were wrong. The mark in this text is the upright rectangular zero, and
-  it means the alef is dropped in waṣl but **kept in waqf** — it is pronounced
-  when you stop on it.
-- `TajweedRule` and `TajweedFamily` are now generated from one table shared
+  notation guide for the three rules neither matn covers — which say so.*
+- `pageTajweedCounts(page)` — كم كلمةً في الصفحة تحمل كلَّ حكم، معدودةً بنفس
+  الطريقة التي يتنقّل بها إطار التوقيف بينها.
+  <br>*How many words on a page carry each rule, counted the same way the focus
+  frame steps through them.*
+- **تصحيح:** كانت الألف الزائدة موصوفةً بـ«الصفر المستدير» و«لا يُنطق»، وكلاهما
+  خطأ. فالعلامة في هذا النصّ هي الصفر المستطيل القائم، ومعناها أن الألف تسقط في
+  الوصل و**تثبت في الوقف** — أي تُنطق إذا وقفتَ عليها.
+  <br>***Fixed:** the extra alef was described as «الصفر المستدير» and «لا
+  يُنطق». Both were wrong. The mark in this text is the upright rectangular
+  zero, and it means the alef is dropped in waṣl but **kept in waqf** — it is
+  pronounced when you stop on it.*
+- صار `TajweedRule` و`TajweedFamily` مولَّدَين من جدول واحد مشترك مع حزمة
+  Kotlin، فلا تصف النسختان الحرف نفسه وصفين مختلفين.
+  <br>*`TajweedRule` and `TajweedFamily` are now generated from one table shared
   with the Kotlin package, so the two ports cannot describe the same letter
-  differently.
-- The example app matches the Android reader: the focus navigator, the browse
-  sheet with a bottom switch, and the reference in the rule sheet.
+  differently.*
+- صار تطبيق المثال مطابقًا لقارئ أندرويد: شريط التوقيف، وورقة التصفّح بمبدّل
+  سفلي، والمرجع داخل ورقة الحكم.
+  <br>*The example app matches the Android reader: the focus navigator, the
+  browse sheet with a bottom switch, and the reference in the rule sheet.*
 
 ## 1.0.0
+
+أول إصدار — الجانب الفلاتري من
+[mushaf-text](https://github.com/sherifshabans/mushaf-text).
 
 First release — the Flutter side of
 [mushaf-text](https://github.com/sherifshabans/mushaf-text).
 
-* `MushafPage` draws any of the 604 pages from the bundled KFGQPC Uthmanic text,
-  broken into lines exactly as the Madinah print does.
-* Tajweed colouring, 18 rules with a colour each, and a tap on a coloured letter
-  returns the rule it belongs to.
-* `Quran` and `TajweedAnnotator` are usable on their own, without drawing.
-* `MushafColors.light` / `.dark`, with per-rule overrides.
-* The rules are derived from the bundled script's own orthography, and a parity
-  test holds them to the Kotlin implementation's output for all 6236 verses —
-  85,386 spans.
+- `MushafPage` يرسم أيًّا من الصفحات الـ٦٠٤ من نصّ مجمّع الملك فهد المرفق،
+  مكسورةً سطورًا كما يكسرها مصحف المدينة بالضبط.
+  <br>*`MushafPage` draws any of the 604 pages from the bundled KFGQPC Uthmanic
+  text, broken into lines exactly as the Madinah print does.*
+- تلوين التجويد، ثمانية عشر حكمًا لكلٍّ لونه، ولمس الحرف الملوّن يرجّع حكمه.
+  <br>*Tajweed colouring, 18 rules with a colour each, and a tap on a coloured
+  letter returns the rule it belongs to.*
+- `Quran` و`TajweedAnnotator` يصلحان وحدهما، دون رسم شيء.
+  <br>*`Quran` and `TajweedAnnotator` are usable on their own, without drawing.*
+- `MushafColors.light` و`.dark`، مع تغيير لون أي حكم على حدة.
+  <br>*`MushafColors.light` / `.dark`, with per-rule overrides.*
+- الأحكام مستخرجة من رسم النصّ المرفق نفسه، واختبارُ تطابقٍ يثبّتها على مخرجات
+  تنفيذ Kotlin في الآيات الـ٦٢٣٦ — ٨٥٬٣٨٦ موضعًا.
+  <br>*The rules are derived from the bundled script's own orthography, and a
+  parity test holds them to the Kotlin implementation's output for all 6236
+  verses — 85,386 spans.*

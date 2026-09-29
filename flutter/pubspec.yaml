@@ -2,7 +2,7 @@ name: mushaf_text
 description: >-
   The Madinah Mushaf as real text for Flutter — the printed page layout, and
   tajweed rules coloured letter by letter.
-version: 1.1.0
+version: 1.1.1
 repository: https://github.com/sherifshabans/mushaf-text
 issue_tracker: https://github.com/sherifshabans/mushaf-text/issues
 
