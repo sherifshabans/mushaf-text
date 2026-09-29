@@ -750,3 +750,41 @@ class _MushafPainter extends CustomPainter {
       old.focusIndex != focusIndex ||
       old.highlighted != highlighted;
 }
+
+/// How many **words** on [page] carry each tajweed rule, most frequent first.
+///
+/// Counted by word rather than by span, and deliberately: this is the number
+/// the focus navigator shows as «الموضع ن من م», and the frame [MushafPage]
+/// draws with [MushafPage.focusIndex] goes around a whole word. A word that
+/// carries the same rule twice is still one stop, so counting spans would
+/// promise a position the navigator can never reach.
+///
+/// It walks the same token list the page draws, so the total here and the
+/// stops there cannot drift apart.
+Future<List<MapEntry<TajweedRule, int>>> pageTajweedCounts(
+  int page, {
+  bool includeNaturalMadd = false,
+}) async {
+  final ayahs = await Quran.page(page);
+  final spans = <int, List<TajweedSpan>>{
+    for (final a in ayahs)
+      a.id: TajweedAnnotator.annotate(a.text,
+          includeNaturalMadd: includeNaturalMadd),
+  };
+  final counts = <TajweedRule, int>{};
+  for (final token in buildPageTokens(ayahs, (_) => '')) {
+    final seen = <TajweedRule>{};
+    for (final s in _tokenSpans(token, spans[token.ayahId])) {
+      if (seen.add(s.rule)) {
+        counts[s.rule] = (counts[s.rule] ?? 0) + 1;
+      }
+    }
+  }
+  final out = counts.entries.toList()
+    ..sort((a, b) {
+      final byCount = b.value.compareTo(a.value);
+      // A stable tie-break, so the key does not reshuffle between rebuilds.
+      return byCount != 0 ? byCount : a.key.index.compareTo(b.key.index);
+    });
+  return out;
+}

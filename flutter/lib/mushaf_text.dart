@@ -15,7 +15,8 @@ library;
 
 export 'src/mushaf_colors.dart';
 export 'src/mushaf_layout.dart' show toArabicNumerals;
-export 'src/mushaf_page.dart' show MushafPage, TajweedHit, mushafFontFamily;
+export 'src/mushaf_page.dart'
+    show MushafPage, TajweedHit, mushafFontFamily, pageTajweedCounts;
 export 'src/quran.dart' show Ayah, Quran;
 export 'src/surah_table.dart' show Surah;
 export 'src/tajweed_annotator.dart' show TajweedAnnotator;

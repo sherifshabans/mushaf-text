@@ -14,7 +14,8 @@ optional colour-coded **tajweed** mode.
 - ٦٠٤ صفحة، ١٥ سطرًا، وكسر السطور **نفس** المطبوع — مش تقدير. والسطور الممدودة
   والمتوسّطة مقاسة من صور المصحف نفسها.
 - خط **KFGQPC HAFS Uthmanic Script** — التنوين المرصوص والوردة برقمها مظبوطين.
-- ١٨ حكم تجويد، كل حكم بلونه، ولمس الحرف الملوّن بيرجّع الحكم وشرحه.
+- ١٨ حكم تجويد، كل حكم بلونه، ولمس الحرف الملوّن بيرجّع الحكم وشرحه **ومرجعه**
+  من تحفة الأطفال أو المقدمة الجزرية برقم البيت ونصّه.
 - شغّال أوفلاين بالكامل: النص والخط والتخطيط جوّه الحزمة. مفيش نت ولا API.
 - التلوين **مابيحرّكش** ولا حرف في الصفحة — متأكَّد منه بالقياس، مش افتراض.
 
@@ -22,7 +23,7 @@ optional colour-coded **tajweed** mode.
 
 ```yaml
 dependencies:
-  mushaf_text: ^1.0.0
+  mushaf_text: ^1.1.0
 ```
 
 ## Use
@@ -70,6 +71,11 @@ MushafColors.light.copyWith(
 
 ## Where the tajweed rules come from
 
+Two things have to be right, and they are established separately: **where** a
+rule falls, and **what** the rule is.
+
+### Where — from the script itself
+
 **Not from an imported dataset.** The published ones index into the *Tanzil*
 Uthmani text while this package carries the *KFGQPC* one, and the two differ in
 how they encode the marks themselves — a sukun is `U+06E1` here and `U+0652`
@@ -85,20 +91,47 @@ for. Checked across all 6236 verses:
 | a bare noon, or a stacked tanween | ikhfa or idgham | 5139 / 6643 |
 | a small high or low meem | **iqlab** | 609 |
 | a maddah `U+0653` | a madd longer than two counts | 5652 |
-| a rectangular zero `U+06E0` | a letter that is not pronounced | 66 |
+| an upright rectangular zero `U+06E0` | an alef dropped in wasl, kept in waqf | 66 |
 | a small waw or yeh | **madd silah** | 2213 |
 
-The letter that follows settles the rest. Two checks guard it: no izhar is ever
-coloured — 3627 of them — and this Dart implementation produces **identical
-spans to the Kotlin one for all 6236 verses**, 85,386 of them, which
-`test/tajweed_parity_test.dart` enforces against a fixture the Kotlin side
-writes.
+This Dart implementation produces **identical spans to the Kotlin one for all
+6236 verses**, 85,386 of them, which `test/tajweed_parity_test.dart` enforces
+against a fixture the Kotlin side writes.
 
-> **The rule names, definitions and counts were written from knowledge and have
-> not been checked against a named tajweed reference.** The *positions* are
-> verified; the *wording* deserves a qualified reader's eye before anyone relies
-> on it for teaching. The colours are a proposal, not a reproduction of any
-> printed mushaf.
+### What — from named references
+
+Every rule carries `source` and `evidence`: the matn it comes from, its verse
+number, and the verse in its own words, shown to the reader in the app.
+
+- **تحفة الأطفال والغلمان**, al-Jamzūrī (d. 1198 AH) — the noon sākinah and
+  tanwīn rules, the meem sākinah rules, the lām of «أل», and the madd rules.
+- **المقدمة الجزرية**, Ibn al-Jazarī (d. 833 AH) — qalqalah, ghunnah, and the
+  ikhfāʾ of the meem.
+- **التعريف بمصحف المدينة النبوية** (King Fahd Complex) — the notation: the
+  upright rectangular zero, the small wāw and yāʾ, and hamzat al-waṣl.
+
+Three rules — madd ṣilah, hamzat al-waṣl and the extra alef — are **not** in
+either matn; their `source` says so rather than claiming an authority they do
+not have. The riwāyah throughout is **Ḥafṣ ʿan ʿĀṣim** by the Shāṭibiyyah.
+
+`test/tajweed_reference_test.dart` holds the code to those references rather
+than to its own habits, over the whole mushaf:
+
+- **Tuhfa v.11** — a noon sākinah meeting a *yanmū* letter **inside one word**
+  is iẓhār muṭlaq, not idghām. All 125 positions (دُنْيَا, صِنْوَان, قِنْوَان,
+  بُنْيَان) stay uncoloured.
+- **Tuhfa vv.54–56** — in the surah openings, only «كم عسل نقص» takes six
+  counts; «حي طهر» is a natural madd and the alef takes none. All 29 openings
+  agree, with no exceptions.
+- **Tuhfa vv.7–8** — no iẓhār ḥalqī is ever coloured.
+- **The notation guide** — all 66 extra-alef positions are alef, and the rule
+  reads «dropped in waṣl, kept in waqf», not «silent».
+
+> The 18 rulings are now each tied to a named reference, and the positions are
+> tested against it. What has still not happened is a **qualified reader**
+> reading the 18 explanatory texts end to end. The rulings are sourced; the
+> phrasing of the explanations is ours, and a teacher's eye would still be
+> worth more than another test.
 
 ## Why colouring cannot break the page
 
