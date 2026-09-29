@@ -20,6 +20,10 @@ class MushafApp extends StatelessWidget {
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF6B4F3A)),
           useMaterial3: true,
+          // The Android app sets Amiri on every label it draws; leaving the
+          // default here is what made the two look like different programs even
+          // where they did the same thing.
+          fontFamily: 'Amiri',
         ),
         home: const MushafReader(),
       );
@@ -35,7 +39,9 @@ class MushafReader extends StatefulWidget {
 class _MushafReaderState extends State<MushafReader> {
   final _controller = PageController();
   int _page = 1;
-  bool _tajweed = true;
+  // Off by default, as on Android: a reader who opens the mushaf to read
+  // should get the page they know, and turn the colours on deliberately.
+  bool _tajweed = false;
   bool _naturalMadd = false;
   bool _dark = false;
 
@@ -209,6 +215,17 @@ class _MushafReaderState extends State<MushafReader> {
         _focusIndex = 0;
       });
 
+  /// The rule on its own, with no word — opened from the colour key.
+  void _explain(TajweedRule rule) => showModalBottomSheet<void>(
+        context: context,
+        backgroundColor: _colors.paper,
+        isScrollControlled: true,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        builder: (_) => _RuleSheet(colors: _colors, rule: rule),
+      );
+
   void _showRule(TajweedHit hit) => showModalBottomSheet<void>(
         context: context,
         backgroundColor: _colors.paper,
@@ -253,6 +270,10 @@ class _MushafReaderState extends State<MushafReader> {
           onRule: (rule) {
             Navigator.pop(context);
             _focusOn(rule);
+          },
+          onExplain: (rule) {
+            Navigator.pop(context);
+            _explain(rule);
           },
           onSurah: (surah) {
             Navigator.pop(context);
@@ -363,24 +384,29 @@ class _RuleSheet extends StatelessWidget {
   const _RuleSheet({
     required this.colors,
     required this.rule,
-    required this.word,
-    required this.start,
-    required this.end,
-    required this.onFollow,
+    this.word,
+    this.start = 0,
+    this.end = 0,
+    this.onFollow,
   });
 
   final MushafColors colors;
   final TajweedRule rule;
-  final String word;
+
+  /// The word the reader tapped, if they got here by tapping a letter. Null
+  /// when the sheet was opened from the colour key, which has no word to show.
+  final String? word;
   final int start;
   final int end;
-  final VoidCallback onFollow;
+  final VoidCallback? onFollow;
 
   @override
   Widget build(BuildContext context) {
     final color = colors.tajweedColor(rule);
-    final a = start.clamp(0, word.length);
-    final b = end.clamp(a, word.length);
+    final word = this.word;
+    final a = word == null ? 0 : start.clamp(0, word.length);
+    final b = word == null ? 0 : end.clamp(a, word.length);
+    final follow = onFollow;
     return Directionality(
       textDirection: TextDirection.rtl,
       child: DraggableScrollableSheet(
@@ -415,15 +441,19 @@ class _RuleSheet extends StatelessWidget {
                   ],
                 ),
               ),
-              TextButton.icon(
-                onPressed: onFollow,
-                icon: const Icon(Icons.travel_explore, size: 18),
-                label: const Text('تتبّعه'),
-              ),
+              if (follow != null)
+                TextButton.icon(
+                  onPressed: follow,
+                  icon: const Icon(Icons.travel_explore, size: 18),
+                  label: const Text('تتبّعه'),
+                ),
             ]),
             const SizedBox(height: 16),
             // The reader's own word, with the letter carrying the rule picked
-            // out — an example they found beats a canned one.
+            // out — an example they found beats a canned one. Opened from the
+            // colour key there is no such word, and a canned one would be worse
+            // than none, so the box is simply left out.
+            if (word != null)
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
@@ -546,6 +576,7 @@ class _BrowseSheet extends StatefulWidget {
     required this.onTajweed,
     required this.onNaturalMadd,
     required this.onRule,
+    required this.onExplain,
     required this.onSurah,
   });
 
@@ -557,6 +588,7 @@ class _BrowseSheet extends StatefulWidget {
   final ValueChanged<bool> onTajweed;
   final ValueChanged<bool> onNaturalMadd;
   final ValueChanged<TajweedRule> onRule;
+  final ValueChanged<TajweedRule> onExplain;
   final ValueChanged<Surah> onSurah;
 
   @override
@@ -581,16 +613,10 @@ class _BrowseSheetState extends State<_BrowseSheet> {
               child:
                   _tab == 0 ? _index(scroll, colors) : _rules(scroll, colors),
             ),
-            NavigationBar(
-              backgroundColor: colors.paper,
-              selectedIndex: _tab,
-              height: 62,
-              onDestinationSelected: (i) => setState(() => _tab = i),
-              destinations: const [
-                NavigationDestination(icon: Icon(Icons.list), label: 'الفهرس'),
-                NavigationDestination(
-                    icon: Icon(Icons.palette_outlined), label: 'الأحكام'),
-              ],
+            _BrowseBar(
+              colors: colors,
+              selected: _tab,
+              onSelect: (i) => setState(() => _tab = i),
             ),
           ],
         ),
@@ -638,12 +664,17 @@ class _BrowseSheetState extends State<_BrowseSheet> {
         ),
         const Divider(),
         Padding(
-          padding: const EdgeInsets.only(top: 10, bottom: 4),
+          padding: const EdgeInsets.only(top: 10, bottom: 2),
           child: Text('أحكام صفحة ${toArabicNumerals(widget.page)}',
               style: TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
                   color: colors.ink)),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: Text('اضغط أي حكم يوقّفك على أول موضع له في الصفحة.',
+              style: TextStyle(fontSize: 12.5, color: colors.accent)),
         ),
         if (!widget.tajweed)
           Padding(
@@ -677,10 +708,49 @@ class _BrowseSheetState extends State<_BrowseSheet> {
                   style: TextStyle(fontSize: 12.5, color: colors.accent)),
               onTap: () => widget.onRule(e.key),
             ),
+        const SizedBox(height: 18),
+        Divider(color: colors.gold.withValues(alpha: 0.4)),
         const SizedBox(height: 14),
+        // The whole key, grouped by family — not only what this page happens to
+        // carry. A reader looking up a rule they met elsewhere should find it
+        // here without hunting for a page that has one.
+        Text('كل الأحكام',
+            style: TextStyle(
+                fontSize: 15, fontWeight: FontWeight.bold, color: colors.ink)),
+        Padding(
+          padding: const EdgeInsets.only(top: 2, bottom: 10),
+          child: Text('اضغط على أي حكم لشرحه ومرجعه، أو على أي حرف ملوّن في الصفحة.',
+              style: TextStyle(fontSize: 12.5, color: colors.accent)),
+        ),
+        for (final family in TajweedFamily.values) ...[
+          Padding(
+            padding: const EdgeInsets.only(top: 6, bottom: 2),
+            child: Text(family.label,
+                style: TextStyle(fontSize: 12, color: colors.accent)),
+          ),
+          for (final rule
+              in TajweedRule.values.where((r) => r.family == family))
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+              leading: Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: colors.tajweedColor(rule),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              ),
+              title: Text(rule.label, style: TextStyle(color: colors.ink)),
+              trailing: Text(rule.amount,
+                  style: TextStyle(fontSize: 12, color: colors.accent)),
+              onTap: () => widget.onExplain(rule),
+            ),
+          const SizedBox(height: 8),
+        ],
         Divider(color: colors.gold.withValues(alpha: 0.4)),
         Padding(
-          padding: const EdgeInsets.only(top: 12),
+          padding: const EdgeInsets.only(top: 12, bottom: 8),
           child: Text(
             'مواضع الأحكام مستخرجة من رسم المصحف نفسه، ومقابَلة على تحفة '
             'الأطفال والمقدمة الجزرية. المس أي حرف ملوّن لترى الحكم ومرجعه.',
@@ -688,6 +758,80 @@ class _BrowseSheetState extends State<_BrowseSheet> {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// The switch between the index and the rules, drawn to match the Compose one.
+///
+/// Material's `NavigationBar` brings its own pill indicator, its own height and
+/// its own type — all of which read as a different app next to the Android
+/// screen. This is the same two columns Compose draws: icon, gap, label, and
+/// nothing else.
+class _BrowseBar extends StatelessWidget {
+  const _BrowseBar({
+    required this.colors,
+    required this.selected,
+    required this.onSelect,
+  });
+
+  final MushafColors colors;
+  final int selected;
+  final ValueChanged<int> onSelect;
+
+  static const _tabs = [
+    (icon: Icons.list, label: 'الفهرس'),
+    (icon: Icons.palette, label: 'الأحكام'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final primary = Theme.of(context).colorScheme.primary;
+    return Container(
+      color: colors.paper,
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          children: [
+            for (var i = 0; i < _tabs.length; i++)
+              Expanded(
+                child: InkWell(
+                  onTap: () => onSelect(i),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 7),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          _tabs[i].icon,
+                          size: 21,
+                          color: i == selected
+                              ? primary
+                              : colors.accent.withValues(alpha: 0.55),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          _tabs[i].label,
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: i == selected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
+                            color: i == selected
+                                ? primary
+                                : colors.accent.withValues(alpha: 0.7),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

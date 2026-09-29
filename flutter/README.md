@@ -155,3 +155,8 @@ their layout and their tajweed rules, verse for verse.
 The code is MIT. The bundled **KFGQPC HAFS Uthmanic Script** font is the King
 Fahd Complex's: free to use and redistribute, **not** to modify or sell — it
 ships here byte for byte. See `licenses/` in the repository root.
+
+The example app additionally bundles **Amiri** (SIL Open Font License 1.1) for
+its interface labels, so it reads like the Android app it mirrors. Amiri is not
+part of the package itself — `MushafPage` needs only the KFGQPC font, which
+travels with it.

@@ -54,6 +54,15 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+  # Amiri (SIL OFL) for the interface chrome, so the Arabic labels read the
+  # same as the Android app's. The mushaf text itself uses the KFGQPC font
+  # that ships inside the package.
+  fonts:
+    - family: Amiri
+      fonts:
+        - asset: assets/fonts/amiri_regular.ttf
+        - asset: assets/fonts/amiri_bold.ttf
+          weight: 700
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
