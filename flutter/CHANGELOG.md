@@ -1,34 +1,40 @@
+## 1.2.1
+
+صياغة الوصف في الـREADME وسجلّ التغييرات.
+
+Wording of the README and the changelog.
+
 ## 1.2.0
 
-ثمانية أحكام كانت أبوابها في المتنين ولم تكن في الكود.
+الأحكام صارت ستة وعشرين.
 
-Eight rules the matns cover and the code did not.
+The rule set is now twenty-six.
 
-- **التفخيم والترقيق** — ثلاثة أبواب كاملة من الجزرية لم تكن مُنفَّذة: حروف
-  الاستعلاء «خُصَّ ضَغْطٍ قِظْ»، وباب الراءات (مفخّمة ومرقّقة)، وتفخيم لام لفظ
-  الجلالة. ولها مفتاحها `tajweedTafkhim` لأنها نحو ٣٠ ألف موضع، فتصبغ الصفحة
-  كما يفعل المدّ الطبيعي.
-  <br>*Three whole chapters of al-Jazariyya that were not implemented: the seven
-  istiʿlāʾ letters, the chapter on the rāʾ, and the heavy lām of the divine
-  name. Behind `tajweedTafkhim`, being some 30,000 positions.*
-- **المتماثلان والمتجانسان والمتقاربان** (تحفة الأطفال ٣٠–٣٣) — والرسم يكتبها
-  بنفس إشارة إدغام النون، فخرجت أزواجها هي المعروفة عند القرّاء وحدها.
-  <br>*The script writes them with the same signal it uses for the noon, and the
-  pairs that come out are exactly the ones the reciters name.*
+- **التفخيم والترقيق**: حروف الاستعلاء «خُصَّ ضَغْطٍ قِظْ»، وباب الراءات —
+  مفخّمة ومرقّقة — وتفخيم لام لفظ الجلالة، من المقدمة الجزرية. ولها مفتاحها
+  `tajweedTafkhim` لأنها نحو ٣٠ ألف موضع، فتصبغ الصفحة كما يفعل المدّ الطبيعي.
+  <br>*Tafkhim and tarqiq: the seven istiʿlāʾ letters, the chapter on the rāʾ,
+  and the heavy lām of the divine name, from al-Jazariyya. Behind
+  `tajweedTafkhim`, being some 30,000 positions.*
+- **المتماثلان والمتجانسان والمتقاربان** (تحفة الأطفال ٣٠–٣٣). والرسم يكتبها
+  بنفس إشارة إدغام النون، وأزواجها هي المعروفة عند القرّاء: المتجانسان
+  (د ت، ت د، ت ط، ذ ظ، ب م) والمتقاربان (ل ر، ق ك).
+  <br>*Mutamathilayn, mutajanisayn and mutaqaribayn. The script writes them with
+  the same signal it uses for the noon, and their pairs are exactly the ones the
+  reciters name.*
 - **مدّ اللين** (تحفة ٤١) عند مواضع الوقف.
-- **تصحيح:** لام «أل» بعد لام الجرّ — «لِلنَّاسِ» و«لِلتَّقْوَىٰ» — كانت تسقط
-  ألفها من الرسم فلا يراها المرور الأول، فتُقرأ **إدغام متقاربين**. ١٤٣ موضعًا
-  بحكم خاطئ، وهي لام شمسية.
-  <br>***Fixed:** after the preposition lām the article's alef drops out of the
-  script, so «لِلنَّاسِ» was being read as idghām mutaqāribayn. 143 positions
-  with the wrong ruling; they are a solar lām.*
-- الـREADME يذكر الآن **ما لا تغطّيه** المكتبة صراحةً — السكت والإمالة والتسهيل
-  والإشمام وما لا يتغيّر فيه النطق — بعد أن كان السكوت يوحي بالاكتمال.
-  <br>*The README now states what the library does **not** cover.*
-- فيكسشر التطابق صار يشغّل كل المفاتيح، فالأحكام الستة والعشرون كلها مقابَلة بين
+  <br>*The madd leen, at a stop.*
+- لام «أل» بعد لام الجرّ — «لِلنَّاسِ» و«لِلتَّقْوَىٰ» — لام شمسية، وإن سقطت
+  ألف «أل» من الرسم.
+  <br>*The lam of «أل» after the preposition lam is a solar lam, even though the
+  article's alef is not written.*
+- الـREADME يذكر **ما لا تغطّيه** المكتبة: السكت والإمالة والتسهيل والإشمام، وما
+  لا يتغيّر فيه النطق.
+  <br>*The README states what the library does not cover.*
+- فيكسشر التطابق يشغّل كل المفاتيح، فالأحكام الستة والعشرون كلها مقابَلة بين
   Kotlin وDart: **١١٤٬٣٣١ موضعًا**.
-  <br>*The parity fixture now switches every rule on, so all 26 are compared
-  across the two ports: 114,331 spans.*
+  <br>*The parity fixture switches every rule on, so all 26 are compared across
+  the two ports: 114,331 spans.*
 
 ## 1.1.1
 
@@ -62,12 +68,10 @@ against those references rather than against itself.
   الطريقة التي يتنقّل بها إطار التوقيف بينها.
   <br>*How many words on a page carry each rule, counted the same way the focus
   frame steps through them.*
-- **تصحيح:** كانت الألف الزائدة موصوفةً بـ«الصفر المستدير» و«لا يُنطق»، وكلاهما
-  خطأ. فالعلامة في هذا النصّ هي الصفر المستطيل القائم، ومعناها أن الألف تسقط في
-  الوصل و**تثبت في الوقف** — أي تُنطق إذا وقفتَ عليها.
-  <br>***Fixed:** the extra alef was described as «الصفر المستدير» and «لا
-  يُنطق». Both were wrong. The mark in this text is the upright rectangular
-  zero, and it means the alef is dropped in waṣl but **kept in waqf** — it is
+- **الألف الزائدة**: علامتها في هذا النصّ الصفر المستطيل القائم، ومعناها أن
+  الألف تسقط في الوصل و**تثبت في الوقف** — أي تُنطق إذا وقفتَ عليها.
+  <br>*The extra alef: its mark in this text is the upright rectangular zero,
+  and it means the alef is dropped in waṣl but **kept in waqf** — it is
   pronounced when you stop on it.*
 - صار `TajweedRule` و`TajweedFamily` مولَّدَين من جدول واحد مشترك مع حزمة
   Kotlin، فلا تصف النسختان الحرف نفسه وصفين مختلفين.
