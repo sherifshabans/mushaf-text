@@ -59,7 +59,7 @@ your module's `build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    implementation("com.github.sherifshabans:mushaf-text:1.2.0")
+    implementation("com.github.sherifshabans:mushaf-text:1.4.0")
 }
 ```
 
@@ -67,7 +67,7 @@ Groovy (`build.gradle`):
 
 ```groovy
 repositories { maven { url 'https://jitpack.io' } }
-dependencies { implementation 'com.github.sherifshabans:mushaf-text:1.2.0' }
+dependencies { implementation 'com.github.sherifshabans:mushaf-text:1.4.0' }
 ```
 
 المتطلبات: `minSdk 21` وJetpack Compose. والمكتبة تزيد حجم التطبيق نحو ١٫٧ ميجا
@@ -122,7 +122,6 @@ MushafPage(
     page = 3,
     tajweed = true,
     naturalMadd = false,          // المدّ الطبيعي مغلق افتراضيًا — يصبغ الصفحة كلها
-    tafkhim = false,              // التفخيم والترقيق كذلك — نحو ٣٠ ألف موضع
     onTajweedClick = { hit = it } // لُمس حرف ملوّن · a coloured letter was tapped
 )
 

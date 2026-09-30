@@ -258,7 +258,7 @@ enum class TajweedRule(
         evidence = "طِبْ ثُمَّ صِلْ رُحْمَاً تَفُزْ ضِفْ ذَا نِعَم * دَعْ سُوءَ ظَنٍ زُرْ شَرِيفَاً لِلْكَرَم ‖ وَاللاَّمَ الاُولَى سَمِّهَا قَمْرِيَّهْ * وَاللاَّمَ الاُخْرىَ سَمِّهَا شَمْسِيَّهْ"
     ),
     SILENT(
-        color = Color(0xFF2F6FA8),
+        color = Color(0xFFA480D4),
         label = "ألف زائدة",
         englishName = "Extra Alef",
         family = TajweedFamily.MUTE,
@@ -370,15 +370,6 @@ enum class TajweedRule(
      * ويغطّي على باقي الأحكام. فله مفتاح منفصل.
      */
     val isNaturalMadd: Boolean get() = this == MADD_NATURAL
-
-    /**
-     * `true` لأحكام التفخيم والترقيق.
-     *
-     * حروف الاستعلاء وحدها ١٦٬٦٣٨ موضعًا، والراءات ١٢٬٤٠٣ — أي قرابة
-     * ثلاثين ألفًا، وهي تصبغ الصفحة كما كان المدّ الطبيعي يفعل. فلها
-     * مفتاح منفصل.
-     */
-    val isTafkhim: Boolean get() = family == TajweedFamily.TAFKHIM
 }
 
 /** عائلة الحكم — ترتّب مفتاح الألوان فقط، ولا أثر لها على الرسم. */

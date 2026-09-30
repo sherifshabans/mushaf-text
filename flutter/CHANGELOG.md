@@ -1,3 +1,23 @@
+## 1.4.0
+
+التفخيم والترقيق أحكام كسائر الأحكام، فلا مفتاح لها.
+
+Tafkhim and tarqiq are rulings like any other, so they have no switch.
+
+- حُذف `tajweedTafkhim` من `MushafPage` و`includeTafkhim` من
+  `TajweedAnnotator.annotate` و`pageTajweedCounts`. الأحكام تُطبَّق دائمًا.
+  <br>*`tajweedTafkhim` is gone from `MushafPage`, and `includeTafkhim` from
+  `TajweedAnnotator.annotate` and `pageTajweedCounts`. The rules always apply.*
+- لون **الألف الزائدة** صار مستقلًّا عن لون **همزة الوصل**، وكانا لونًا واحدًا.
+  وهما حكمان مختلفان: همزة الوصل تسقط في الوصل وتُنطق في الابتداء، والألف
+  الزائدة تسقط في الوصل وتثبت في الوقف.
+  <br>*The extra alef now has its own colour, separate from hamzat al-wasl.
+  They are different rulings: the wasl hamza is dropped when you join and
+  sounded when you begin; the extra alef is dropped when you join and kept when
+  you stop.*
+- المدّ الطبيعي على حاله: مفتاحه باقٍ ومغلق افتراضيًا.
+  <br>*The natural madd is unchanged: its switch stays, and stays off.*
+
 ## 1.3.0
 
 التفخيم والترقيق تظهر افتراضيًا، بألوان تُرى.

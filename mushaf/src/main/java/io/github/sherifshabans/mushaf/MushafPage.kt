@@ -91,10 +91,6 @@ data class TajweedHit(
  *
  * @param tajweed colour every tajweed rule. Colouring never moves a single glyph:
  *   colour-only spans are not metric-affecting, so the layout is identical.
- * @param tafkhim also colour tafkhim and tarqiq — the isti'la letters, the ra
- *   and the lam of the divine name. On by default, being rulings like any
- *   other; turning it off lightens the page, which carries some 30,000 of
- *   them.
  * @param naturalMadd also colour natural madd (2 counts). Off by default — it is
  *   the most frequent rule by far and turns the page green.
  * @param selectedAyahIds ayat to highlight with [MushafColors.selection].
@@ -113,7 +109,6 @@ fun MushafPage(
     modifier: Modifier = Modifier,
     tajweed: Boolean = false,
     naturalMadd: Boolean = false,
-    tafkhim: Boolean = true,
     colors: MushafColors = MushafColors.Light,
     selectedAyahIds: Set<Int> = emptySet(),
     highlightedAyahs: Map<Int, Color> = emptyMap(),
@@ -135,7 +130,6 @@ fun MushafPage(
         modifier = modifier,
         tajweed = tajweed,
         naturalMadd = naturalMadd,
-        tafkhim = tafkhim,
         colors = colors,
         selectedAyahIds = selectedAyahIds,
         highlightedAyahs = highlightedAyahs,
@@ -160,7 +154,6 @@ fun MushafPage(
     modifier: Modifier = Modifier,
     tajweed: Boolean = false,
     naturalMadd: Boolean = false,
-    tafkhim: Boolean = true,
     colors: MushafColors = MushafColors.Light,
     selectedAyahIds: Set<Int> = emptySet(),
     highlightedAyahs: Map<Int, Color> = emptyMap(),
@@ -186,7 +179,6 @@ fun MushafPage(
             modifier = modifier.padding(contentPadding),
             tajweed = tajweed,
             naturalMadd = naturalMadd,
-            tafkhim = tafkhim,
             colors = colors,
             selectedAyahIds = selectedAyahIds,
             highlightedAyahs = highlightedAyahs,
@@ -406,7 +398,6 @@ private fun MushafPageBody(
     modifier: Modifier,
     tajweed: Boolean,
     naturalMadd: Boolean,
-    tafkhim: Boolean,
     colors: MushafColors,
     selectedAyahIds: Set<Int>,
     highlightedAyahs: Map<Int, Color>,
@@ -435,10 +426,10 @@ private fun MushafPageBody(
     }
     // الأحكام بتتحسب مرة لكل صفحة ولكل آية لوحدها — علامة نهاية الآية وقف،
     // فمفيش حكم بيعبر من آية للّي بعدها.
-    val tajweedByAyah = remember(ayahs, tajweed, naturalMadd, tafkhim) {
+    val tajweedByAyah = remember(ayahs, tajweed, naturalMadd) {
         if (!tajweed) emptyMap()
         else ayahs.associate {
-            it.id to TajweedAnnotator.annotate(it.text, naturalMadd, tafkhim)
+            it.id to TajweedAnnotator.annotate(it.text, naturalMadd)
         }
     }
 

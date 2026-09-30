@@ -199,11 +199,7 @@ class TajweedAnnotatorTest {
         val counts = HashMap<TajweedRule, Int>()
         val samples = HashMap<TajweedRule, String>()
         allAyat().forEach { aya ->
-            TajweedAnnotator.annotate(
-                aya.text,
-                includeNaturalMadd = true,
-                includeTafkhim = true
-            ).forEach { s ->
+            TajweedAnnotator.annotate(aya.text, includeNaturalMadd = true).forEach { s ->
                 counts[s.rule] = (counts[s.rule] ?: 0) + 1
                 if (s.rule !in samples) {
                     samples[s.rule] = "${aya.sora}:${aya.ayaNo} «${wordAt(aya.text, s.start)}»"

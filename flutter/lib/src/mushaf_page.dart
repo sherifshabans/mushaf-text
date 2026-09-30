@@ -59,7 +59,6 @@ class MushafPage extends StatefulWidget {
     this.colors,
     this.tajweed = false,
     this.tajweedNaturalMadd = false,
-    this.tajweedTafkhim = true,
     this.maxFontSize = 34,
     this.onAyahTap,
     this.onTajweedTap,
@@ -78,13 +77,6 @@ class MushafPage extends StatefulWidget {
 
   /// Include the natural madd, by far the most frequent rule.
   final bool tajweedNaturalMadd;
-
-  /// Also colour tafkhim and tarqiq: the isti'la letters, the ra, and the lam
-  /// of the divine name.
-  ///
-  /// On by default, being rulings like any other. Turning it off lightens the
-  /// page, which carries some 30,000 of them.
-  final bool tajweedTafkhim;
 
   /// Ceiling for the computed font size, in logical pixels.
   final double maxFontSize;
@@ -287,7 +279,6 @@ class _MushafPageState extends State<MushafPage> {
         tajweed[a.id] = TajweedAnnotator.annotate(
           a.text,
           includeNaturalMadd: widget.tajweedNaturalMadd,
-          includeTafkhim: widget.tajweedTafkhim,
         );
       }
     }
@@ -773,14 +764,12 @@ class _MushafPainter extends CustomPainter {
 Future<List<MapEntry<TajweedRule, int>>> pageTajweedCounts(
   int page, {
   bool includeNaturalMadd = false,
-  bool includeTafkhim = true,
 }) async {
   final ayahs = await Quran.page(page);
   final spans = <int, List<TajweedSpan>>{
     for (final a in ayahs)
       a.id: TajweedAnnotator.annotate(a.text,
-          includeNaturalMadd: includeNaturalMadd,
-          includeTafkhim: includeTafkhim),
+          includeNaturalMadd: includeNaturalMadd),
   };
   final counts = <TajweedRule, int>{};
   for (final token in buildPageTokens(ayahs, (_) => '')) {

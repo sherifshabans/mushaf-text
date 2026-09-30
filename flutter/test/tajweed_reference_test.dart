@@ -222,7 +222,7 @@ void main() {
   // يمرّ حتى لو كان الحكم واقعًا على حرف آخر.
 
   List<TajweedSpan> all(String t) =>
-      TajweedAnnotator.annotate(t, includeNaturalMadd: true, includeTafkhim: true);
+      TajweedAnnotator.annotate(t, includeNaturalMadd: true);
 
   group('تحفة الأطفال ٣٠–٣٣: المتماثلان والمتجانسان والمتقاربان', () {
     // الحرف الأول عارٍ والثاني مشدّد، والتقسيم بالمخرج والصفة. فالمتجانسان

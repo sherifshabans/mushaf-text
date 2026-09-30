@@ -39,13 +39,7 @@ class TajweedFixtureDump {
             w.write("# ayahId\\tstart,length,ruleOrdinal;…\n")
             w.write("# rule order: " + TajweedRule.entries.joinToString(",") { it.name } + "\n")
             TestData.ayahs.forEach { ayah ->
-                val list = TajweedAnnotator.annotate(
-                    ayah.text,
-                    includeNaturalMadd = true,
-                    // Both switches on, so the fixture covers all 26 rules. With
-                    // tafkhim off, that whole family would cross to Dart unchecked.
-                    includeTafkhim = true
-                )
+                val list = TajweedAnnotator.annotate(ayah.text, includeNaturalMadd = true)
                 if (list.isEmpty()) return@forEach
                 spans += list.size
                 w.write(ayah.id.toString())

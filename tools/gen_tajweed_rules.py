@@ -287,7 +287,7 @@ RULES = [
         evidence=V[27] + " ‖ " + V[28],
     ),
     dict(
-        kt="SILENT", dart="silent", color="0xFF2F6FA8",
+        kt="SILENT", dart="silent", color="0xFFA480D4",
         label="ألف زائدة", en="Extra Alef", family="MUTE",
         definition="ألف زائدة في الرسم عليها الصفر المستطيل القائم: تسقط في "
                    "الوصل وتثبت ألفًا في الوقف — كـ﴿أَنَا۠﴾ و﴿ٱلسَّبِيلَا۠﴾.",
@@ -499,15 +499,6 @@ def gen_kotlin(package, with_english, with_hit=True):
      * ويغطّي على باقي الأحكام. فله مفتاح منفصل.
      */
     val isNaturalMadd: Boolean get() = this == MADD_NATURAL
-
-    /**
-     * `true` لأحكام التفخيم والترقيق.
-     *
-     * حروف الاستعلاء وحدها ١٦٬٦٣٨ موضعًا، والراءات ١٢٬٤٠٣ — أي قرابة
-     * ثلاثين ألفًا، وهي تصبغ الصفحة كما كان المدّ الطبيعي يفعل. فلها
-     * مفتاح منفصل.
-     */
-    val isTafkhim: Boolean get() = family == TajweedFamily.TAFKHIM
 }
 
 /** عائلة الحكم — ترتّب مفتاح الألوان فقط، ولا أثر لها على الرسم. */
@@ -626,13 +617,6 @@ def gen_dart():
   /// it tints most of the page and buries everything else — hence its own
   /// switch.
   bool get isNaturalMadd => this == TajweedRule.maddNatural;
-
-  /// The tafkhim and tarqiq rules.
-  ///
-  /// The seven isti'la letters alone are 16,638 positions and the ra is
-  /// 12,403 — about thirty thousand, enough to tint the page the way the
-  /// natural madd would. Hence their own switch.
-  bool get isTafkhim => family == TajweedFamily.tafkhim;
 }
 
 /// A rule over `[start, end)` in UTF-16 code units of an ayah's text.

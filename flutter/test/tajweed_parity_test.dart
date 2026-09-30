@@ -31,13 +31,8 @@ void main() {
     var checkedSpans = 0;
 
     for (final ayah in ayahs) {
-      // Both switches on, matching the Kotlin dump: with tafkhim off, that
-      // whole family would never be compared.
-      final actual = TajweedAnnotator.annotate(
-        ayah.text,
-        includeNaturalMadd: true,
-        includeTafkhim: true,
-      );
+      final actual =
+          TajweedAnnotator.annotate(ayah.text, includeNaturalMadd: true);
       final want = expected[ayah.id] ?? const <TajweedSpan>[];
       checkedSpans += want.length;
 

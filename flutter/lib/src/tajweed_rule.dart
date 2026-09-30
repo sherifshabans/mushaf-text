@@ -256,7 +256,7 @@ enum TajweedRule {
     evidence: 'طِبْ ثُمَّ صِلْ رُحْمَاً تَفُزْ ضِفْ ذَا نِعَم * دَعْ سُوءَ ظَنٍ زُرْ شَرِيفَاً لِلْكَرَم ‖ وَاللاَّمَ الاُولَى سَمِّهَا قَمْرِيَّهْ * وَاللاَّمَ الاُخْرىَ سَمِّهَا شَمْسِيَّهْ',
   ),
   silent(
-    color: Color(0xFF2F6FA8),
+    color: Color(0xFFA480D4),
     label: 'ألف زائدة',
     englishName: 'Extra Alef',
     family: TajweedFamily.mute,
@@ -401,13 +401,6 @@ enum TajweedRule {
   /// it tints most of the page and buries everything else — hence its own
   /// switch.
   bool get isNaturalMadd => this == TajweedRule.maddNatural;
-
-  /// The tafkhim and tarqiq rules.
-  ///
-  /// The seven isti'la letters alone are 16,638 positions and the ra is
-  /// 12,403 — about thirty thousand, enough to tint the page the way the
-  /// natural madd would. Hence their own switch.
-  bool get isTafkhim => family == TajweedFamily.tafkhim;
 }
 
 /// A rule over `[start, end)` in UTF-16 code units of an ayah's text.

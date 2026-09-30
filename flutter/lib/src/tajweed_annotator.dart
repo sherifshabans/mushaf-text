@@ -271,7 +271,6 @@ abstract final class TajweedAnnotator {
   static List<TajweedSpan> annotate(
     String text, {
     bool includeNaturalMadd = false,
-    bool includeTafkhim = true,
   }) {
     if (text.isEmpty) return const [];
     final rules = List<TajweedRule?>.filled(text.length, null);
@@ -524,23 +523,21 @@ abstract final class TajweedAnnotator {
       }
     }
 
-    // 8) tafkhim and tarqiq — behind their own switch, being some 30,000 spots
-    if (includeTafkhim) {
-      for (var i = 0; i < text.length; i++) {
-        final c = text.codeUnitAt(i);
-        if (rules[i] != null || _isMark(c) || _isSpace(c)) continue;
-        if (_isLamJalalaTafkhim(text, i)) {
-          mark(i, TajweedRule.lamJalala);
-        } else if (text[i] == 'ر') {
-          mark(
-            i,
-            _isRaMuraqqaqa(text, i)
-                ? TajweedRule.raMuraqqaqa
-                : TajweedRule.raMufakhkhama,
-          );
-        } else if (_istilaLetters.contains(text[i])) {
-          mark(i, TajweedRule.tafkhim);
-        }
+    // 8) tafkhim and tarqiq — rulings like any other, so no switch
+    for (var i = 0; i < text.length; i++) {
+      final c = text.codeUnitAt(i);
+      if (rules[i] != null || _isMark(c) || _isSpace(c)) continue;
+      if (_isLamJalalaTafkhim(text, i)) {
+        mark(i, TajweedRule.lamJalala);
+      } else if (text[i] == 'ر') {
+        mark(
+          i,
+          _isRaMuraqqaqa(text, i)
+              ? TajweedRule.raMuraqqaqa
+              : TajweedRule.raMufakhkhama,
+        );
+      } else if (_istilaLetters.contains(text[i])) {
+        mark(i, TajweedRule.tafkhim);
       }
     }
 

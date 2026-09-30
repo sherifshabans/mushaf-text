@@ -233,14 +233,11 @@ object TajweedAnnotator {
      *
      * @param text نصّ الآية ([Ayah.text]) — بدون رقم الآية في آخره.
      * @param includeNaturalMadd المدّ الطبيعي أكتر حكم تكرارًا، فله مفتاح منفصل.
-     * @param includeTafkhim التفخيم والترقيق: تظهر افتراضيًا كسائر الأحكام،
-     *   وإطفاؤها يخفّف الصفحة — فهي قرابة ٣٠ ألف موضع.
      * @return مواضع مرتّبة بالبداية، ومفيش تداخل بينها.
      */
     fun annotate(
         text: String,
-        includeNaturalMadd: Boolean = false,
-        includeTafkhim: Boolean = true
+        includeNaturalMadd: Boolean = false
     ): List<TajweedSpan> {
         if (text.isEmpty()) return emptyList()
         val rules = arrayOfNulls<TajweedRule>(text.length)
@@ -455,20 +452,18 @@ object TajweedAnnotator {
             }
         }
 
-        // ٨) التفخيم والترقيق — خلف مفتاحها، فهي قرابة ٣٠ ألف موضع
-        if (includeTafkhim) {
-            for (i in text.indices) {
-                if (rules[i] != null || isMark(text[i]) || isSpace(text[i])) continue
-                val c = text[i]
-                when {
-                    isLamJalalaTafkhim(text, i) -> mark(i, TajweedRule.LAM_JALALA)
-                    c == 'ر' -> mark(
-                        i,
-                        if (isRaMuraqqaqa(text, i)) TajweedRule.RA_MURAQQAQA
-                        else TajweedRule.RA_MUFAKHKHAMA
-                    )
-                    c in ISTILA_LETTERS -> mark(i, TajweedRule.TAFKHIM)
-                }
+        // ٨) التفخيم والترقيق — أحكام كسائر الأحكام، فلا مفتاح لها
+        for (i in text.indices) {
+            if (rules[i] != null || isMark(text[i]) || isSpace(text[i])) continue
+            val c = text[i]
+            when {
+                isLamJalalaTafkhim(text, i) -> mark(i, TajweedRule.LAM_JALALA)
+                c == 'ر' -> mark(
+                    i,
+                    if (isRaMuraqqaqa(text, i)) TajweedRule.RA_MURAQQAQA
+                    else TajweedRule.RA_MUFAKHKHAMA
+                )
+                c in ISTILA_LETTERS -> mark(i, TajweedRule.TAFKHIM)
             }
         }
 
