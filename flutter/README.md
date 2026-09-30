@@ -39,7 +39,7 @@ optional colour-coded **tajweed** mode in which every rule carries its source.
 
 ```yaml
 dependencies:
-  mushaf_text: ^1.2.0
+  mushaf_text: ^1.2.1
 ```
 
 ## الاستعمال · Use
@@ -187,8 +187,8 @@ to its own habits, over the whole mushaf:
   with no exceptions.*
 - **تحفة ٧–٨** — لا يُلوَّن إظهار حلقي أبدًا.
   *Tuhfa vv.7–8 — no iẓhār ḥalqī is ever coloured.*
-- **دليل الضبط** — مواضع الألف الزائدة الـ٦٦ كلها ألف، ونصّ الحكم «تسقط وصلًا
-  وتثبت وقفًا» لا «لا تُنطق».
+- **دليل الضبط** — مواضع الألف الزائدة الـ٦٦ كلها ألف، وحكمها «تسقط وصلًا
+  وتثبت وقفًا».
 - **تحفة ٣٠–٣٣** — أزواج المتجانسين هي المعروفة وحدها (د ت، ت د، ت ط، ذ ظ،
   ب م)، والمتقاربين (ل ر، ق ك)، ولا زوج خارجها.
   *Tuhfa vv.30–33 — the mutajanisayn and mutaqaribayn pairs are exactly the
@@ -200,22 +200,21 @@ to its own habits, over the whole mushaf:
   *The notation guide — all 66 extra-alef positions are alef, and the rule reads
   «dropped in waṣl, kept in waqf», not «silent».*
 
-> الأحكام الـ١٨ صار كلٌّ منها مسنودًا إلى مرجع مسمّى، ومواضعها مختبَرة عليه.
-> والذي لم يحدث بعدُ أن يقرأ **قارئ مُجاز** الشروح الثمانية عشر كاملة. الأحكام لها
+> الأحكام الستة والعشرون كلٌّ منها مسنود إلى مرجع مسمّى، ومواضعه مختبَرة عليه.
+> والذي لم يحدث بعدُ أن يقرأ **قارئ مُجاز** الشروح الستة والعشرين كاملة. الأحكام لها
 > مصادرها؛ أمّا صياغة الشروح فمنّا، وعين الشيخ فيها أنفع من اختبار جديد.
 >
-> Each of the 18 rulings is now tied to a named reference, and the positions are
+> Each of the 26 rulings is tied to a named reference, and the positions are
 > tested against it. What has still not happened is a **qualified reader** going
-> through the 18 explanatory texts end to end. The rulings are sourced; the
+> through the 26 explanatory texts end to end. The rulings are sourced; the
 > phrasing of the explanations is ours, and a teacher's eye would be worth more
 > than another test.
 
 ## ما لا تغطّيه · What it does not cover
 
-الصمت هنا يوحي بالاكتمال، فهذه قائمة ما ليس في المكتبة:
+هذه حدود ما تغطّيه المكتبة:
 
-Silence here would imply completeness, so this is what the library does **not**
-do:
+These are the limits of what the library covers:
 
 - **ما لا يتغيّر فيه النطق لا يُلوَّن** عن قصد: الإظهار بأنواعه (الحلقي
   والشفوي والمطلق)، واللام القمرية، ولام الفعل. تلوينها يوهم القارئ أن فيها

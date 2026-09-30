@@ -263,7 +263,7 @@ The **positions** themselves come from the script and are tested against the
 matn: iẓhār muṭlaq (Tuhfa v.11) across all 125 positions, and the surah openings
 (vv.54–56) across all 29, with no exceptions.
 
-> **تنبيه:** صياغة التعريفات من عندنا ولم يراجعها بعدُ قارئ مُجاز. المواضع
+> **ملاحظة:** صياغة التعريفات من عندنا ولم يراجعها بعدُ قارئ مُجاز. المواضع
 > متحقَّق منها؛ أمّا الصياغة فتستحقّ عين شيخ. انظر
 > [`docs/tajweed-review-sheet.md`](docs/tajweed-review-sheet.md).
 >
@@ -283,10 +283,9 @@ differently. Do not hand-edit `TajweedRules.kt`.
 
 ## ما لا تغطّيه · What it does not cover
 
-الصمت هنا يوحي بالاكتمال، فهذه قائمة ما ليس في المكتبة:
+هذه حدود ما تغطّيه المكتبة:
 
-Silence here would imply completeness, so this is what the library does **not**
-do:
+These are the limits of what the library covers:
 
 - **ما لا يتغيّر فيه النطق لا يُلوَّن** عن قصد: الإظهار بأنواعه (الحلقي
   والشفوي والمطلق)، واللام القمرية، ولام الفعل. تلوينها يوهم القارئ أن فيها
