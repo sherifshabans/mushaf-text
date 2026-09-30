@@ -92,8 +92,9 @@ data class TajweedHit(
  * @param tajweed colour every tajweed rule. Colouring never moves a single glyph:
  *   colour-only spans are not metric-affecting, so the layout is identical.
  * @param tafkhim also colour tafkhim and tarqiq — the isti'la letters, the ra
- *   and the lam of the divine name. Off by default: some 30,000 spots, enough
- *   to tint the page the way the natural madd does.
+ *   and the lam of the divine name. On by default, being rulings like any
+ *   other; turning it off lightens the page, which carries some 30,000 of
+ *   them.
  * @param naturalMadd also colour natural madd (2 counts). Off by default — it is
  *   the most frequent rule by far and turns the page green.
  * @param selectedAyahIds ayat to highlight with [MushafColors.selection].
@@ -112,7 +113,7 @@ fun MushafPage(
     modifier: Modifier = Modifier,
     tajweed: Boolean = false,
     naturalMadd: Boolean = false,
-    tafkhim: Boolean = false,
+    tafkhim: Boolean = true,
     colors: MushafColors = MushafColors.Light,
     selectedAyahIds: Set<Int> = emptySet(),
     highlightedAyahs: Map<Int, Color> = emptyMap(),
@@ -159,7 +160,7 @@ fun MushafPage(
     modifier: Modifier = Modifier,
     tajweed: Boolean = false,
     naturalMadd: Boolean = false,
-    tafkhim: Boolean = false,
+    tafkhim: Boolean = true,
     colors: MushafColors = MushafColors.Light,
     selectedAyahIds: Set<Int> = emptySet(),
     highlightedAyahs: Map<Int, Color> = emptyMap(),

@@ -233,13 +233,14 @@ object TajweedAnnotator {
      *
      * @param text نصّ الآية ([Ayah.text]) — بدون رقم الآية في آخره.
      * @param includeNaturalMadd المدّ الطبيعي أكتر حكم تكرارًا، فله مفتاح منفصل.
-     * @param includeTafkhim التفخيم والترقيق قرابة ٣٠ ألف موضع، فلها مفتاح منفصل.
+     * @param includeTafkhim التفخيم والترقيق: تظهر افتراضيًا كسائر الأحكام،
+     *   وإطفاؤها يخفّف الصفحة — فهي قرابة ٣٠ ألف موضع.
      * @return مواضع مرتّبة بالبداية، ومفيش تداخل بينها.
      */
     fun annotate(
         text: String,
         includeNaturalMadd: Boolean = false,
-        includeTafkhim: Boolean = false
+        includeTafkhim: Boolean = true
     ): List<TajweedSpan> {
         if (text.isEmpty()) return emptyList()
         val rules = arrayOfNulls<TajweedRule>(text.length)

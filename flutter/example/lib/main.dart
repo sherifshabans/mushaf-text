@@ -43,7 +43,7 @@ class _MushafReaderState extends State<MushafReader> {
   // should get the page they know, and turn the colours on deliberately.
   bool _tajweed = false;
   bool _naturalMadd = false;
-  bool _tafkhim = false;
+  bool _tafkhim = true;
   bool _dark = false;
 
   /// The rule being walked through on this page, if any.

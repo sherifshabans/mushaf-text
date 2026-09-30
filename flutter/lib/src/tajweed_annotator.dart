@@ -271,7 +271,7 @@ abstract final class TajweedAnnotator {
   static List<TajweedSpan> annotate(
     String text, {
     bool includeNaturalMadd = false,
-    bool includeTafkhim = false,
+    bool includeTafkhim = true,
   }) {
     if (text.isEmpty) return const [];
     final rules = List<TajweedRule?>.filled(text.length, null);

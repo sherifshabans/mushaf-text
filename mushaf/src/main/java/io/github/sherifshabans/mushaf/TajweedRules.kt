@@ -29,6 +29,11 @@ import androidx.compose.ui.graphics.Color
  * متدرّجة في عائلة واحدة، لأن حكمين منها كثيرًا ما يقعان في كلمة واحدة، فدرجتان
  * من لون واحد يضيع الفرق بينهما في حجم القراءة.
  *
+ * وألوان التفخيم اختيرت بالقياس لا بالنظر: لونها الأول كان على بُعد ٢١ وحدة من
+ * لون الحبر فلم يكن يُرى أصلًا. فصار الشرط أن يبعد كل لون عن الحبر وعن الورق، وأن
+ * يبعد عن كل حكم آخر، وأن يبقى في سجلّ الإضاءة والإشباع نفسه — والتفخيم خاصةً
+ * مكتوم، لأنه يقع على كل سطر تقريبًا.
+ *
  * الألوان اجتهاد في العرض، وليست نقلًا عن مصحف ملوّن مطبوع.
  *
  * ## الترتيب
@@ -277,7 +282,7 @@ enum class TajweedRule(
         evidence = "إِنْ فِي الصِّفَاتِ وَالمَخَارِجِ اتَّفَقْ * حَرْفَانِ فَالْمِثْلاَنِ فِيهِمَا أَحَقْ ‖ بِالْمُتَجَانِسَيْنِ ثُمَّ إِنْ سَكَنْ * أَوَّلُ كُلٍّ فَالصَّغِيرَ سَمِّيَنْ"
     ),
     IDGHAM_MUTAJANISAYN(
-        color = Color(0xFF9D174D),
+        color = Color(0xFF2858B8),
         label = "إدغام متجانسين",
         englishName = "Idgham Mutajanisayn",
         family = TajweedFamily.IDGHAM,
@@ -314,7 +319,7 @@ enum class TajweedRule(
 
     // ── التفخيم والترقيق ──────────────────────────────────────────────
     TAFKHIM(
-        color = Color(0xFF44403C),
+        color = Color(0xFFA88080),
         label = "تفخيم",
         englishName = "Tafkhim",
         family = TajweedFamily.TAFKHIM,
@@ -325,7 +330,7 @@ enum class TajweedRule(
         evidence = "وَسَبْعُ عُلْوٍ خُصَّ ضَغْطٍ قِظْ حَصَرْ ‖ وَحَرْفَ الاسْتِعْلَاءِ فَخِّمْ وَاخْصُصَا * الإِطْبَاقَ أَقْوَى نَحْوُ قَالَ وَالعَصَا ‖ فَرَقِّقَنْ مُسْتَفِلاً مِنْ أَحْرُفِ * وَحَاذِرَنْ تَفْخِيمَ لَفْظِ الأَلِفِ"
     ),
     RA_MUFAKHKHAMA(
-        color = Color(0xFF7C2D12),
+        color = Color(0xFF704878),
         label = "راء مفخّمة",
         englishName = "Heavy Ra",
         family = TajweedFamily.TAFKHIM,
@@ -336,7 +341,7 @@ enum class TajweedRule(
         evidence = "وَرَقِّقِ الرَّاءَ إِذَا مَا كُسِرَتْ * كَذَاكَ بَعْدَ الكَسْرِ حَيْثُ سَكَنَتْ ‖ إِنْ لَمْ تَكُنْ مِنْ قَبْلِ حَرْفِ اسْتِعْلَا * أَوْ كَانَتِ الكَسْرَةُ لَيْسَتْ أَصْلَا"
     ),
     RA_MURAQQAQA(
-        color = Color(0xFF8FA7B8),
+        color = Color(0xFFA8A070),
         label = "راء مرقّقة",
         englishName = "Light Ra",
         family = TajweedFamily.TAFKHIM,
@@ -347,7 +352,7 @@ enum class TajweedRule(
         evidence = "وَرَقِّقِ الرَّاءَ إِذَا مَا كُسِرَتْ * كَذَاكَ بَعْدَ الكَسْرِ حَيْثُ سَكَنَتْ ‖ إِنْ لَمْ تَكُنْ مِنْ قَبْلِ حَرْفِ اسْتِعْلَا * أَوْ كَانَتِ الكَسْرَةُ لَيْسَتْ أَصْلَا"
     ),
     LAM_JALALA(
-        color = Color(0xFF713F12),
+        color = Color(0xFFB85858),
         label = "تفخيم لام لفظ الجلالة",
         englishName = "Heavy Lam of Allah",
         family = TajweedFamily.TAFKHIM,

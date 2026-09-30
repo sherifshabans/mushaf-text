@@ -314,7 +314,7 @@ RULES = [
         evidence=V[30] + " ‖ " + V[33],
     ),
     dict(
-        kt="IDGHAM_MUTAJANISAYN", dart="idghamMutajanisayn", color="0xFF9D174D",
+        kt="IDGHAM_MUTAJANISAYN", dart="idghamMutajanisayn", color="0xFF2858B8",
         label="إدغام متجانسين", en="Idgham Mutajanisayn", family="IDGHAM",
         definition="حرفان اتّفقا مخرجًا واختلفا صفةً، أوّلهما ساكن، فيُدغم في "
                    "الثاني — كـ«قَد تَّبَيَّنَ» و«ٱرْكَب مَّعَنَا» و«إِذ ظَّلَمُوا».",
@@ -346,7 +346,7 @@ RULES = [
     ),
 
     dict(
-        kt="TAFKHIM", dart="tafkhim", color="0xFF44403C",
+        kt="TAFKHIM", dart="tafkhim", color="0xFFA88080",
         label="تفخيم", en="Tafkhim", family="TAFKHIM",
         definition="حروف الاستعلاء السبعة «خُصَّ ضَغْطٍ قِظْ» تُفخَّم دائمًا، "
                    "ويقوى التفخيم في المُطبَقة منها: ص ض ط ظ. وما سواها من "
@@ -357,7 +357,7 @@ RULES = [
         evidence=J_ISTILA + " ‖ " + J_TAFKHIM + " ‖ " + J_TARQIQ,
     ),
     dict(
-        kt="RA_MUFAKHKHAMA", dart="raMufakhkhama", color="0xFF7C2D12",
+        kt="RA_MUFAKHKHAMA", dart="raMufakhkhama", color="0xFF704878",
         label="راء مفخّمة", en="Heavy Ra", family="TAFKHIM",
         definition="الراء مفخّمة في الأصل: إذا فُتحت أو ضُمّت، أو سكنت بعد فتح "
                    "أو ضمّ، أو سكنت بعد كسر عارض، أو جاء بعدها حرف استعلاء.",
@@ -367,7 +367,7 @@ RULES = [
         evidence=J_RA,
     ),
     dict(
-        kt="RA_MURAQQAQA", dart="raMuraqqaqa", color="0xFF8FA7B8",
+        kt="RA_MURAQQAQA", dart="raMuraqqaqa", color="0xFFA8A070",
         label="راء مرقّقة", en="Light Ra", family="TAFKHIM",
         definition="الراء مرقّقة إذا كُسرت، أو سكنت بعد كسر أصلي ولم يأتِ بعدها "
                    "حرف استعلاء. وفي «فِرْقٍ» وجهان.",
@@ -377,7 +377,7 @@ RULES = [
         evidence=J_RA,
     ),
     dict(
-        kt="LAM_JALALA", dart="lamJalala", color="0xFF713F12",
+        kt="LAM_JALALA", dart="lamJalala", color="0xFFB85858",
         label="تفخيم لام لفظ الجلالة", en="Heavy Lam of Allah",
         family="TAFKHIM",
         definition="لام لفظ الجلالة تُفخَّم إذا سبقها فتح أو ضمّ، وتُرقَّق إذا "
@@ -415,6 +415,11 @@ HEAD_AR = """أحكام التجويد المعروضة على صفحة المص
 (عارض) ← أحمر (٦ حركات). وأحكام النون والميم متفرّقة على عجلة الألوان عمدًا لا
 متدرّجة في عائلة واحدة، لأن حكمين منها كثيرًا ما يقعان في كلمة واحدة، فدرجتان
 من لون واحد يضيع الفرق بينهما في حجم القراءة.
+
+وألوان التفخيم اختيرت بالقياس لا بالنظر: لونها الأول كان على بُعد ٢١ وحدة من
+لون الحبر فلم يكن يُرى أصلًا. فصار الشرط أن يبعد كل لون عن الحبر وعن الورق، وأن
+يبعد عن كل حكم آخر، وأن يبقى في سجلّ الإضاءة والإشباع نفسه — والتفخيم خاصةً
+مكتوم، لأنه يقع على كل سطر تقريبًا.
 
 الألوان اجتهاد في العرض، وليست نقلًا عن مصحف ملوّن مطبوع."""
 

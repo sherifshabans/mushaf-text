@@ -59,7 +59,7 @@ class MushafPage extends StatefulWidget {
     this.colors,
     this.tajweed = false,
     this.tajweedNaturalMadd = false,
-    this.tajweedTafkhim = false,
+    this.tajweedTafkhim = true,
     this.maxFontSize = 34,
     this.onAyahTap,
     this.onTajweedTap,
@@ -82,8 +82,8 @@ class MushafPage extends StatefulWidget {
   /// Also colour tafkhim and tarqiq: the isti'la letters, the ra, and the lam
   /// of the divine name.
   ///
-  /// Off by default. They are some 30,000 positions, enough to tint the page
-  /// the way the natural madd does.
+  /// On by default, being rulings like any other. Turning it off lightens the
+  /// page, which carries some 30,000 of them.
   final bool tajweedTafkhim;
 
   /// Ceiling for the computed font size, in logical pixels.
@@ -773,7 +773,7 @@ class _MushafPainter extends CustomPainter {
 Future<List<MapEntry<TajweedRule, int>>> pageTajweedCounts(
   int page, {
   bool includeNaturalMadd = false,
-  bool includeTafkhim = false,
+  bool includeTafkhim = true,
 }) async {
   final ayahs = await Quran.page(page);
   final spans = <int, List<TajweedSpan>>{

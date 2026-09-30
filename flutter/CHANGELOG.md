@@ -1,3 +1,21 @@
+## 1.3.0
+
+التفخيم والترقيق تظهر افتراضيًا، بألوان تُرى.
+
+Tafkhim and tarqiq show by default, in colours that can be seen.
+
+- `tajweedTafkhim` و`includeTafkhim` صارت `true` افتراضيًا — فهي أحكام كسائر
+  الأحكام. والمفتاح باقٍ لمن أراد صفحة أخفّ.
+  <br>*`tajweedTafkhim` and `includeTafkhim` now default to `true`: they are
+  rulings like any other. The switch stays for a lighter page.*
+- ألوان التفخيم والراء ولام الجلالة اختيرت بالقياس: أن تبعد عن لون الحبر وعن
+  لون الورق وعن كل حكم آخر، وأن تبقى في سجلّ الإضاءة والإشباع نفسه. والتفخيم
+  أكتمها لأنه يقع على كل سطر تقريبًا.
+  <br>*The tafkhim, ra and lam colours were chosen by measurement: far enough
+  from the ink, from the paper, and from every other rule, while staying in the
+  palette's own register. Tafkhim is the quietest of them, falling as it does on
+  nearly every line.*
+
 ## 1.2.1
 
 صياغة الوصف في الـREADME وسجلّ التغييرات.
