@@ -65,6 +65,24 @@ object TajweedAnnotator {
     private const val IKHFA_LETTERS = "صذثكجشقسدطزفتضظ"
     private const val SHAMSI_LETTERS = "تثدذرزسشصضطظلن"
     private const val QALQALA_LETTERS = "قطبجد"
+
+    /** حروف الاستعلاء السبعة — «خُصَّ ضَغْطٍ قِظْ» (الجزرية، صفات الحروف). */
+    private const val ISTILA_LETTERS = "خصضغطقظ"
+
+    private const val FATHA = 'َ'
+    private const val FATHATAN = 'ً'
+    private const val DAMMATAN = 'ٌ'
+    private const val KASRATAN = 'ٍ'
+
+    /**
+     * الحرفان المتجانسان: اتّفقا مخرجًا واختلفا صفةً.
+     *
+     * وما عداهما مما يُدغم ولم يتّفق حرفاه فهو متقاربان، وما اتّفق حرفاه
+     * فمتماثلان — فالثلاثة يقسمها هذا الجدول وحده.
+     */
+    private val MUTAJANIS = setOf(
+        "دت", "تد", "تط", "طت", "ذظ", "ظذ", "ثذ", "بم"
+    )
     /**
      * همزة **القطع** وحدها.
      *
@@ -160,6 +178,51 @@ object TajweedAnnotator {
     }
 
     /** الهمزة ممكن تيجي حرفًا أو علامة فوق التطويل — الاتنين همزة. */
+    /**
+     * ترقيق الراء، على باب الراءات في الجزرية:
+     *
+     * «وَرَقِّقِ الرَّاءَ إِذَا مَا كُسِرَتْ * كَذَاكَ بَعْدَ الكَسْرِ حَيْثُ
+     * سَكَنَتْ ‖ إِنْ لَمْ تَكُنْ مِنْ قَبْلِ حَرْفِ اسْتِعْلَا * أَوْ كَانَتِ
+     * الكَسْرَةُ لَيْسَتْ أَصْلَا».
+     *
+     * والكسرة غير الأصلية هي كسرة همزة الوصل، نحو «ٱرْجِعِى» — فالراء بعدها
+     * مفخّمة. و«فِرْقٍ» فيها وجهان، وهذا يعطيها التفخيم لأن بعدها قافًا.
+     */
+    private fun isRaMuraqqaqa(t: String, i: Int): Boolean {
+        val m = marksAfter(t, i)
+        if (m.contains(KASRA) || m.contains(KASRATAN) || m.contains(SUBSCRIPT_ALEF)) return true
+        if (!m.any { it in SUKUNS }) return false
+        val p = prevLetter(t, i)
+        if (p < 0) return false
+        if (t[p] == ALEF_WASLA) return false
+        if (!marksAfter(t, p).contains(KASRA)) return false
+        val k = nextLetter(t, i)
+        if (k >= 0 && t[k] in ISTILA_LETTERS) return false
+        return true
+    }
+
+    /**
+     * لام لفظ الجلالة: اللام المشدّدة في «ٱللَّه»، وقبلها لام وألف.
+     *
+     * تُفخَّم بعد فتح أو ضمّ وتُرقَّق بعد كسر، والمُعلَّم هنا التفخيم وحده لأن
+     * الترقيق هو الأصل في سائر اللامات.
+     */
+    private fun isLamJalalaTafkhim(t: String, i: Int): Boolean {
+        if (t[i] != 'ل' || !hasShadda(t, i)) return false
+        val next = nextLetter(t, i)
+        if (next < 0 || t[next] != 'ه') return false
+        val p = prevLetter(t, i)
+        if (p < 0 || t[p] != 'ل') return false
+        val a = prevLetter(t, p)
+        if (a < 0 || (t[a] != ALEF_WASLA && t[a] != 'ا')) return false
+        // أول الآية: لا حرف قبلها، والابتداء بها تفخيم.
+        val before = prevLetter(t, a)
+        if (before < 0) return true
+        val bm = marksAfter(t, before)
+        return bm.contains(FATHA) || bm.contains(DAMMA) ||
+            bm.contains(FATHATAN) || bm.contains(DAMMATAN)
+    }
+
     private fun isHamzaAt(t: String, i: Int): Boolean =
         t[i] in HAMZA_LETTERS || marksAfter(t, i).any { it == HAMZA_ABOVE || it == HAMZA_BELOW }
 
@@ -170,9 +233,14 @@ object TajweedAnnotator {
      *
      * @param text نصّ الآية ([Ayah.text]) — بدون رقم الآية في آخره.
      * @param includeNaturalMadd المدّ الطبيعي أكتر حكم تكرارًا، فله مفتاح منفصل.
+     * @param includeTafkhim التفخيم والترقيق قرابة ٣٠ ألف موضع، فلها مفتاح منفصل.
      * @return مواضع مرتّبة بالبداية، ومفيش تداخل بينها.
      */
-    fun annotate(text: String, includeNaturalMadd: Boolean = false): List<TajweedSpan> {
+    fun annotate(
+        text: String,
+        includeNaturalMadd: Boolean = false,
+        includeTafkhim: Boolean = false
+    ): List<TajweedSpan> {
         if (text.isEmpty()) return emptyList()
         val rules = arrayOfNulls<TajweedRule>(text.length)
 
@@ -280,6 +348,51 @@ object TajweedAnnotator {
             }
         }
 
+        // ٣أ) لام «أل» التي سقطت ألفها من الرسم
+        //
+        // بعد لام الجرّ تسقط ألف «أل» كتابةً: «لِ» + «ٱلنَّاس» تُكتب
+        // «لِلنَّاسِ». فالمرور الأول — وهو يبدأ من همزة الوصل — لا يراها،
+        // وكان المرور التالي يقرؤها إدغام متقاربين. وهي لام شمسية.
+        //
+        // والشرط أن تكون اللام عارية ويليها **في الكلمة نفسها** حرف شمسي
+        // مشدّد؛ فاللام العارية التي يليها مشدّد في كلمة أخرى — «بَل رَّفَعَهُ»
+        // و«قُل رَّبِّ» — إدغام حقيقي، وتبقى له.
+        for (i in text.indices) {
+            if (rules[i] != null || text[i] != 'ل' || !isBare(text, i)) continue
+            val k = nextLetter(text, i)
+            if (k < 0 || crossesWord(text, i, k)) continue
+            if (text[k] in SHAMSI_LETTERS && hasShadda(text, k)) {
+                mark(i, TajweedRule.LAM_SHAMSIYYA)
+            }
+        }
+
+        // ٣ب) الإدغام العام: متماثلان ومتجانسان ومتقاربان
+        //
+        // الرسم يكتبها بنفس إشارة إدغام النون: الحرف الأول **عارٍ** من كل
+        // علامة، والثاني مشدّد. اتّضح ذلك بالفحص: «قَد تَّبَيَّنَ» و«ٱرْكَب
+        // مَّعَنَا» و«إِذ ظَّلَمُوا» و«نَخْلُقكُّم» كلها على هذه الصورة.
+        //
+        // والألف والألف المقصورة مستثناتان: هما حرفا مدّ لا تُدغمان، وتركهما
+        // يجعل ٥٠٩ مواضع من نحو «قَالُوا۟ رَبَّنَا» تُقرأ إدغامًا وليست منه.
+        // وأحكام النون والميم ولام «أل» عُلِّمت قبل هذا، فلا يدوس عليها.
+        for (i in text.indices) {
+            if (rules[i] != null || isMark(text[i]) || isSpace(text[i])) continue
+            val c = text[i]
+            if (c == 'ا' || c == 'ى' || c == ALEF_WASLA) continue
+            if (!isBare(text, i)) continue
+            val k = nextLetter(text, i)
+            if (k < 0 || !hasShadda(text, k)) continue
+            val n = text[k]
+            mark(
+                i,
+                when {
+                    c == n -> TajweedRule.IDGHAM_MUTAMATHILAYN
+                    "$c$n" in MUTAJANIS -> TajweedRule.IDGHAM_MUTAJANISAYN
+                    else -> TajweedRule.IDGHAM_MUTAQARIBAYN
+                }
+            )
+        }
+
         // ٤) المدود المعلَّمة بالمدّة
         for (i in text.indices) {
             if (isMark(text[i]) || rules[i] != null) continue
@@ -316,6 +429,17 @@ object TajweedAnnotator {
             if (p >= 0 && rules[p] == null && isMaddLetter(text, p)) {
                 mark(p, TajweedRule.MADD_ARID)
             }
+            // مدّ اللين: واو أو ياء ساكنة قبلها فتح، تُمدّ عند الوقف عليها.
+            // وهو كالعارض: لا مدَّ فيه وصلًا، فلا يُعلَّم إلا عند موضع وقف.
+            if (p >= 0 && rules[p] == null && (text[p] == 'و' || text[p] == 'ي') &&
+                hasSukun(text, p)
+            ) {
+                val q = prevLetter(text, p)
+                if (q >= 0 && marksAfter(text, q).contains(FATHA)) {
+                    mark(p, TajweedRule.MADD_LEEN)
+                }
+            }
+
             // قلقلة الوقف: آخر حرف من «قطب جد» يُقلقَل عند الوقف
             if (rules[last] == null && text[last] in QALQALA_LETTERS && isBare(text, last)) {
                 mark(last, TajweedRule.QALQALA)
@@ -327,6 +451,23 @@ object TajweedAnnotator {
             for (i in text.indices) {
                 if (rules[i] != null || isMark(text[i]) || isSpace(text[i])) continue
                 if (isMaddLetter(text, i)) mark(i, TajweedRule.MADD_NATURAL)
+            }
+        }
+
+        // ٨) التفخيم والترقيق — خلف مفتاحها، فهي قرابة ٣٠ ألف موضع
+        if (includeTafkhim) {
+            for (i in text.indices) {
+                if (rules[i] != null || isMark(text[i]) || isSpace(text[i])) continue
+                val c = text[i]
+                when {
+                    isLamJalalaTafkhim(text, i) -> mark(i, TajweedRule.LAM_JALALA)
+                    c == 'ر' -> mark(
+                        i,
+                        if (isRaMuraqqaqa(text, i)) TajweedRule.RA_MURAQQAQA
+                        else TajweedRule.RA_MUFAKHKHAMA
+                    )
+                    c in ISTILA_LETTERS -> mark(i, TajweedRule.TAFKHIM)
+                }
             }
         }
 

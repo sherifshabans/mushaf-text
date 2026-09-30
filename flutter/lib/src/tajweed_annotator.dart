@@ -73,6 +73,23 @@ abstract final class TajweedAnnotator {
   static const String _shamsiLetters = 'تثدذرزسشصضطظلن';
   static const String _qalqalaLetters = 'قطبجد';
 
+  /// The seven isti'la letters — «خُصَّ ضَغْطٍ قِظْ» (al-Jazariyya).
+  static const String _istilaLetters = 'خصضغطقظ';
+
+  static const int _fatha = 0x064E;
+  static const int _fathatan = 0x064B;
+  static const int _dammatan = 0x064C;
+  static const int _kasratan = 0x064D;
+
+  /// The pairs that share a makhraj but differ in sifa.
+  ///
+  /// Everything else that assimilates is mutaqaribayn when the two letters
+  /// differ and mutamathilayn when they are the same, so this one table
+  /// separates all three.
+  static const Set<String> _mutajanis = {
+    'دت', 'تد', 'تط', 'طت', 'ذظ', 'ظذ', 'ثذ', 'بم',
+  };
+
   /// Hamzat **al-qat'** only.
   ///
   /// The connecting alef (`ٱ`) is deliberately **out**: it is not a glottal
@@ -187,6 +204,55 @@ abstract final class TajweedAnnotator {
   }
 
   /// A hamza can be written as a letter or as a mark over a tatweel — both count.
+  /// Tarqiq of the ra, per al-Jazariyya's chapter on the ra:
+  ///
+  /// «وَرَقِّقِ الرَّاءَ إِذَا مَا كُسِرَتْ * كَذَاكَ بَعْدَ الكَسْرِ حَيْثُ
+  /// سَكَنَتْ ‖ إِنْ لَمْ تَكُنْ مِنْ قَبْلِ حَرْفِ اسْتِعْلَا * أَوْ كَانَتِ
+  /// الكَسْرَةُ لَيْسَتْ أَصْلَا».
+  ///
+  /// The kasra that is not original is hamzat al-wasl's, as in «ٱرْجِعِى», so
+  /// the ra after it stays heavy. «فِرْقٍ» admits both readings; this gives it
+  /// the heavy one, because a qaf follows.
+  static bool _isRaMuraqqaqa(String t, int i) {
+    final m = _marksAfter(t, i).codeUnits;
+    if (m.contains(_kasra) ||
+        m.contains(_kasratan) ||
+        m.contains(_subscriptAlef)) {
+      return true;
+    }
+    if (!m.any(_sukuns.contains)) return false;
+    final p = _prevLetter(t, i);
+    if (p < 0) return false;
+    if (t.codeUnitAt(p) == _alefWasla) return false;
+    if (!_marksAfter(t, p).codeUnits.contains(_kasra)) return false;
+    final k = _nextLetter(t, i);
+    if (k >= 0 && _istilaLetters.contains(t[k])) return false;
+    return true;
+  }
+
+  /// The lam of the divine name: the doubled lam in «ٱللَّه», with a lam and an
+  /// alef before it.
+  ///
+  /// It is heavy after a fatha or a damma and light after a kasra. Only the
+  /// heavy case is marked, since light is what every other lam already is.
+  static bool _isLamJalalaTafkhim(String t, int i) {
+    if (t[i] != 'ل' || !_hasShadda(t, i)) return false;
+    final next = _nextLetter(t, i);
+    if (next < 0 || t[next] != 'ه') return false;
+    final p = _prevLetter(t, i);
+    if (p < 0 || t[p] != 'ل') return false;
+    final a = _prevLetter(t, p);
+    if (a < 0 || (t.codeUnitAt(a) != _alefWasla && t[a] != 'ا')) return false;
+    // Starting an ayah with it: nothing before, and beginning on it is heavy.
+    final before = _prevLetter(t, a);
+    if (before < 0) return true;
+    final bm = _marksAfter(t, before).codeUnits;
+    return bm.contains(_fatha) ||
+        bm.contains(_damma) ||
+        bm.contains(_fathatan) ||
+        bm.contains(_dammatan);
+  }
+
   static bool _isHamzaAt(String t, int i) =>
       _hamzaLetters.contains(t[i]) ||
       _marksAfter(t, i)
@@ -205,6 +271,7 @@ abstract final class TajweedAnnotator {
   static List<TajweedSpan> annotate(
     String text, {
     bool includeNaturalMadd = false,
+    bool includeTafkhim = false,
   }) {
     if (text.isEmpty) return const [];
     final rules = List<TajweedRule?>.filled(text.length, null);
@@ -333,6 +400,54 @@ abstract final class TajweedAnnotator {
       }
     }
 
+    // 3a) the lam of «أل» when the article's alef is not written
+    //
+    // After the preposition lam the alef drops out of the script: «لِ» +
+    // «ٱلنَّاس» is written «لِلنَّاسِ». The first pass starts from the alef
+    // wasla and so never saw it, and the pass below then read the bare lam as
+    // idgham mutaqaribayn — 143 positions with the wrong ruling.
+    //
+    // The lam must be bare and the shadda'd sun letter must be in the *same*
+    // word: a bare lam before a shadda'd letter across a word — «بَل رَّفَعَهُ»,
+    // «قُل رَّبِّ» — is real idgham and keeps it.
+    for (var i = 0; i < text.length; i++) {
+      if (rules[i] != null || text[i] != 'ل' || !_isBare(text, i)) continue;
+      final k = _nextLetter(text, i);
+      if (k < 0 || _crossesWord(text, i, k)) continue;
+      if (_shamsiLetters.contains(text[k]) && _hasShadda(text, k)) {
+        mark(i, TajweedRule.lamShamsiyya);
+      }
+    }
+
+    // 3b) general idgham: mutamathilayn, mutajanisayn, mutaqaribayn
+    //
+    // The script writes these with the same signal it uses for the noon: the
+    // first letter **bare** and the second carrying a shadda. Checked across
+    // the mushaf — «قَد تَّبَيَّنَ», «ٱرْكَب مَّعَنَا», «إِذ ظَّلَمُوا»,
+    // «نَخْلُقكُّم» are all written that way.
+    //
+    // Alef and alef maqsura are excluded: they are letters of prolongation and
+    // do not assimilate, and leaving them in reads 509 places like «قَالُوا۟
+    // رَبَّنَا» as idgham when they are not. The noon, meem and article rules
+    // ran first, so this never overwrites them.
+    for (var i = 0; i < text.length; i++) {
+      final c = text.codeUnitAt(i);
+      if (rules[i] != null || _isMark(c) || _isSpace(c)) continue;
+      if (text[i] == 'ا' || text[i] == 'ى' || c == _alefWasla) continue;
+      if (!_isBare(text, i)) continue;
+      final k = _nextLetter(text, i);
+      if (k < 0 || !_hasShadda(text, k)) continue;
+      final n = text[k];
+      mark(
+        i,
+        text[i] == n
+            ? TajweedRule.idghamMutamathilayn
+            : _mutajanis.contains('${text[i]}$n')
+                ? TajweedRule.idghamMutajanisayn
+                : TajweedRule.idghamMutaqaribayn,
+      );
+    }
+
     // 4) the madds written with a maddah
     for (var i = 0; i < text.length; i++) {
       if (_isMark(text.codeUnitAt(i)) || rules[i] != null) continue;
@@ -379,6 +494,18 @@ abstract final class TajweedAnnotator {
       if (p >= 0 && rules[p] == null && _isMaddLetter(text, p)) {
         mark(p, TajweedRule.maddArid);
       }
+      // Madd leen: a waw or ya with a sukun after a fatha, lengthened when you
+      // stop on it. Like the arid madd it does not lengthen in wasl, so it is
+      // marked only where a stop falls.
+      if (p >= 0 &&
+          rules[p] == null &&
+          (text[p] == 'و' || text[p] == 'ي') &&
+          _hasSukun(text, p)) {
+        final q = _prevLetter(text, p);
+        if (q >= 0 && _marksAfter(text, q).codeUnits.contains(_fatha)) {
+          mark(p, TajweedRule.maddLeen);
+        }
+      }
       // qalqalah at a stop: a final letter of "qutb jad" is bounced
       if (rules[last] == null &&
           _qalqalaLetters.contains(text[last]) &&
@@ -394,6 +521,26 @@ abstract final class TajweedAnnotator {
         final code = text.codeUnitAt(i);
         if (_isMark(code) || _isSpace(code)) continue;
         if (_isMaddLetter(text, i)) mark(i, TajweedRule.maddNatural);
+      }
+    }
+
+    // 8) tafkhim and tarqiq — behind their own switch, being some 30,000 spots
+    if (includeTafkhim) {
+      for (var i = 0; i < text.length; i++) {
+        final c = text.codeUnitAt(i);
+        if (rules[i] != null || _isMark(c) || _isSpace(c)) continue;
+        if (_isLamJalalaTafkhim(text, i)) {
+          mark(i, TajweedRule.lamJalala);
+        } else if (text[i] == 'ر') {
+          mark(
+            i,
+            _isRaMuraqqaqa(text, i)
+                ? TajweedRule.raMuraqqaqa
+                : TajweedRule.raMufakhkhama,
+          );
+        } else if (_istilaLetters.contains(text[i])) {
+          mark(i, TajweedRule.tafkhim);
+        }
       }
     }
 

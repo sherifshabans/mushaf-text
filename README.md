@@ -23,7 +23,7 @@ optional colour-coded **tajweed** mode in which every rule carries its source.
 - ٦٠٤ صفحات، ١٥ سطرًا، وكسر السطور **نفس** المطبوع لا تقديرًا له — والسطور
   الممدودة والمتوسّطة مقيسة من صور المصحف.
 - خط **KFGQPC HAFS Uthmanic Script** — التنوين المرصوص والوردة برقمها مضبوطان.
-- ١٨ حكم تجويد، لكل حكم لونه، ولمس الحرف الملوّن يعطيك الحكم وشرحه **ومرجعه**.
+- ٢٦ حكم تجويد، لكل حكم لونه، ولمس الحرف الملوّن يعطيك الحكم وشرحه **ومرجعه**.
   والتلوين **لا يحرّك** حرفًا واحدًا في الصفحة، وذلك مثبَّت باختبار.
 - يعمل بلا إنترنت تمامًا: النصّ والخط والتخطيط داخل المكتبة. لا شبكة ولا API.
 
@@ -34,7 +34,7 @@ optional colour-coded **tajweed** mode in which every rule carries its source.
   of the mushaf.
 - The **KFGQPC HAFS Uthmanic Script** font, so the stacked tanween and the
   numbered ayah rosette come out right.
-- 18 tajweed rules, a colour each. Tapping a coloured letter returns the rule,
+- 26 tajweed rules, a colour each. Tapping a coloured letter returns the rule,
   its explanation and **its reference**. Colouring **moves nothing** on the
   page, and a test pins that.
 - Fully offline: text, font and layout all ship inside the library. No network,
@@ -59,7 +59,7 @@ your module's `build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    implementation("com.github.sherifshabans:mushaf-text:1.1.0")
+    implementation("com.github.sherifshabans:mushaf-text:1.2.0")
 }
 ```
 
@@ -67,7 +67,7 @@ Groovy (`build.gradle`):
 
 ```groovy
 repositories { maven { url 'https://jitpack.io' } }
-dependencies { implementation 'com.github.sherifshabans:mushaf-text:1.1.0' }
+dependencies { implementation 'com.github.sherifshabans:mushaf-text:1.2.0' }
 ```
 
 المتطلبات: `minSdk 21` وJetpack Compose. والمكتبة تزيد حجم التطبيق نحو ١٫٧ ميجا
@@ -122,6 +122,7 @@ MushafPage(
     page = 3,
     tajweed = true,
     naturalMadd = false,          // المدّ الطبيعي مغلق افتراضيًا — يصبغ الصفحة كلها
+    tafkhim = false,              // التفخيم والترقيق كذلك — نحو ٣٠ ألف موضع
     onTajweedClick = { hit = it } // لُمس حرف ملوّن · a coloured letter was tapped
 )
 
@@ -237,10 +238,11 @@ Every rule carries `source` and `evidence`: the matn, the verse number, and the
 verse in its own words — so a reader can check it instead of taking our word.
 
 - **تحفة الأطفال** للجمزوري (ت ١١٩٨ هـ) — أحكام النون الساكنة والتنوين، والميم
-  الساكنة، ولام «أل»، والمدود.
+  الساكنة، ولام «أل»، والمدود، والمتماثلان والمتجانسان والمتقاربان، واللين.
   <br>*al-Jamzūrī (d. 1198 AH) — noon sākinah and tanwīn, meem sākinah, the lām
   of «أل», and the madd rules.*
-- **المقدمة الجزرية** لابن الجزري (ت ٨٣٣ هـ) — القلقلة والغنّة وإخفاء الميم.
+- **المقدمة الجزرية** لابن الجزري (ت ٨٣٣ هـ) — القلقلة والغنّة وإخفاء الميم،
+  والتفخيم والترقيق: حروف الاستعلاء والراءات ولام لفظ الجلالة.
   <br>*Ibn al-Jazarī (d. 833 AH) — qalqalah, ghunnah, the ikhfāʾ of the meem.*
 - **التعريف بمصحف المدينة النبوية** (مجمّع الملك فهد) — علامات الضبط.
   <br>*(King Fahd Complex) — the notation marks.*
@@ -278,6 +280,33 @@ The 18 rules are generated from one table in
 [`tools/gen_tajweed_rules.py`](tools/gen_tajweed_rules.py) into both the Kotlin
 library and the Dart package, so the two ports cannot describe the same letter
 differently. Do not hand-edit `TajweedRules.kt`.
+
+## ما لا تغطّيه · What it does not cover
+
+الصمت هنا يوحي بالاكتمال، فهذه قائمة ما ليس في المكتبة:
+
+Silence here would imply completeness, so this is what the library does **not**
+do:
+
+- **ما لا يتغيّر فيه النطق لا يُلوَّن** عن قصد: الإظهار بأنواعه (الحلقي
+  والشفوي والمطلق)، واللام القمرية، ولام الفعل. تلوينها يوهم القارئ أن فيها
+  عملًا.
+  <br>*Anything that changes nothing in the pronunciation is left uncoloured on
+  purpose: all three kinds of izhar, the lunar lam, and the lam of a verb.*
+- **السكت** في مواضعه الأربعة عند حفص، و**الإمالة** في ﴿مَجْر۪ىٰهَا﴾،
+  و**التسهيل** في ﴿ءَا۬عْجَمِىٌّ﴾، و**الإشمام** في ﴿لَا تَأْمَ۬نَّا﴾ — معلَّمة
+  في الرسم ولم تُنفَّذ بعد.
+  <br>*The four saktas, the imala, the tasheel and the ishmam are marked in the
+  script but not implemented yet.*
+- **الروم والإشمام في الوقف**، و**مخارج الحروف وصفاتها** عمومًا — وصفيّة لا
+  تُعلَّم على حرف بعينه.
+  <br>*Rawm and ishmam at a stop, and the makharij and sifat in general, are
+  descriptive and do not attach to one letter.*
+- **المقطوع والموصول وهاء التأنيث** — أبواب رسم لا تلوين.
+  <br>*The chapters on joined and separated words are about orthography, not
+  colouring.*
+- **علامات الوقف** تُعرض كما هي ولا يقع عليها لون.
+  <br>*The waqf signs are drawn as they are and never take a colour.*
 
 ## الاختبارات · Tests
 

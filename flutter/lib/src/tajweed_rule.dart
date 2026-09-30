@@ -5,7 +5,9 @@ enum TajweedFamily {
   ghunna('الغنّة', 'Ghunnah'),
   noon('أحكام النون الساكنة والتنوين', 'Noon Sakinah & Tanween'),
   meem('أحكام الميم الساكنة', 'Meem Sakinah'),
+  idgham('المتماثلان والمتجانسان والمتقاربان', 'Mutamathilayn, Mutajanisayn & Mutaqaribayn'),
   qalqala('القلقلة', 'Qalqalah'),
+  tafkhim('التفخيم والترقيق', 'Tafkhim & Tarqiq'),
   madd('المدود', 'Madd'),
   mute('ما لا يُنطق كاملًا', 'Not fully pronounced');
 
@@ -258,6 +260,100 @@ enum TajweedRule {
     letters: 'ا ۟',
     source: 'التعريف بمصحف المدينة النبوية — مجمع الملك فهد — وليست في المتنين',
     evidence: 'الصفر المستطيل القائم فوق الألف بعدها متحرّك يدلّ على زيادتها وصلًا لا وقفًا، نحو ﴿أَنَا۠ خَيْرٌ مِنْهُ﴾',
+  ),
+
+  // ── المتماثلان والمتجانسان والمتقاربان
+  idghamMutamathilayn(
+    color: Color(0xFF7C3AED),
+    label: 'إدغام متماثلين',
+    englishName: 'Idgham Mutamathilayn',
+    family: TajweedFamily.idgham,
+    definition: 'حرفان اتّفقا مخرجًا وصفةً، أوّلهما ساكن، فيُدغم في الثاني فيُنطقان حرفًا واحدًا مشدّدًا — كـ«بَل لَّا» و«يُدْرِككُّم».',
+    amount: 'حرف واحد مشدّد',
+    letters: 'حرف + مثله',
+    source: 'تحفة الأطفال ٣٠ و٣٣',
+    evidence: 'إِنْ فِي الصِّفَاتِ وَالمَخَارِجِ اتَّفَقْ * حَرْفَانِ فَالْمِثْلاَنِ فِيهِمَا أَحَقْ ‖ بِالْمُتَجَانِسَيْنِ ثُمَّ إِنْ سَكَنْ * أَوَّلُ كُلٍّ فَالصَّغِيرَ سَمِّيَنْ',
+  ),
+  idghamMutajanisayn(
+    color: Color(0xFF9D174D),
+    label: 'إدغام متجانسين',
+    englishName: 'Idgham Mutajanisayn',
+    family: TajweedFamily.idgham,
+    definition: 'حرفان اتّفقا مخرجًا واختلفا صفةً، أوّلهما ساكن، فيُدغم في الثاني — كـ«قَد تَّبَيَّنَ» و«ٱرْكَب مَّعَنَا» و«إِذ ظَّلَمُوا».',
+    amount: 'حرف واحد مشدّد',
+    letters: 'د ت • ت د • ت ط • ذ ظ • ب م',
+    source: 'تحفة الأطفال ٣٢ و٣٣',
+    evidence: 'مُتْقَارِبَيْنِ أَوْ يَكُونَا اتَّفَقَا * فِي مَخْرَجٍ دُونَ الصِّفَاتِ حُقِّقَا ‖ بِالْمُتَجَانِسَيْنِ ثُمَّ إِنْ سَكَنْ * أَوَّلُ كُلٍّ فَالصَّغِيرَ سَمِّيَنْ',
+  ),
+  idghamMutaqaribayn(
+    color: Color(0xFF0E7490),
+    label: 'إدغام متقاربين',
+    englishName: 'Idgham Mutaqaribayn',
+    family: TajweedFamily.idgham,
+    definition: 'حرفان تقاربا مخرجًا واختلفا صفةً، أوّلهما ساكن، فيُدغم في الثاني — كـ«بَل رَّانَ» و«نَخْلُقكُّم».',
+    amount: 'حرف واحد مشدّد',
+    letters: 'ل ر • ق ك',
+    source: 'تحفة الأطفال ٣١ و٣٣',
+    evidence: 'وَإِنْ يَكُونَا مَخْرَجاً تَقَارَبَا * وَفي الصِّفَاتِ اخْتَلَفَا يُلَقَّبَا ‖ بِالْمُتَجَانِسَيْنِ ثُمَّ إِنْ سَكَنْ * أَوَّلُ كُلٍّ فَالصَّغِيرَ سَمِّيَنْ',
+  ),
+
+  // ── المدود
+  maddLeen(
+    color: Color(0xFFCA8A04),
+    label: 'مدّ لين',
+    englishName: 'Madd Leen',
+    family: TajweedFamily.madd,
+    definition: 'واو أو ياء ساكنة قبلها فتح، فإن وُقِف عليها مُدَّت — كـ«خَوْف» و«قُرَيْش». وهو معلَّم هنا عند مواضع الوقف، فإن وصلتَ فلا مدَّ.',
+    amount: '٢ أو ٤ أو ٦ حركات — عند الوقف',
+    letters: 'ـَوْ  ـَيْ',
+    source: 'تحفة الأطفال ٤١',
+    evidence: 'وَاللِّينُ مِنْهَا الْيَا وَوَاوٌ سَكَنَا * إِنِ انْفِتَاحٌ قَبْلَ كُلٍّ أُعْلِنَا',
+  ),
+
+  // ── التفخيم والترقيق
+  tafkhim(
+    color: Color(0xFF44403C),
+    label: 'تفخيم',
+    englishName: 'Tafkhim',
+    family: TajweedFamily.tafkhim,
+    definition: 'حروف الاستعلاء السبعة «خُصَّ ضَغْطٍ قِظْ» تُفخَّم دائمًا، ويقوى التفخيم في المُطبَقة منها: ص ض ط ظ. وما سواها من الحروف المستفِلة يُرقَّق.',
+    amount: 'تفخيم دائم',
+    letters: 'خ ص ض غ ط ق ظ',
+    source: 'المقدمة الجزرية — صفات الحروف وباب الترقيق وباب اللامات',
+    evidence: 'وَسَبْعُ عُلْوٍ خُصَّ ضَغْطٍ قِظْ حَصَرْ ‖ وَحَرْفَ الاسْتِعْلَاءِ فَخِّمْ وَاخْصُصَا * الإِطْبَاقَ أَقْوَى نَحْوُ قَالَ وَالعَصَا ‖ فَرَقِّقَنْ مُسْتَفِلاً مِنْ أَحْرُفِ * وَحَاذِرَنْ تَفْخِيمَ لَفْظِ الأَلِفِ',
+  ),
+  raMufakhkhama(
+    color: Color(0xFF7C2D12),
+    label: 'راء مفخّمة',
+    englishName: 'Heavy Ra',
+    family: TajweedFamily.tafkhim,
+    definition: 'الراء مفخّمة في الأصل: إذا فُتحت أو ضُمّت، أو سكنت بعد فتح أو ضمّ، أو سكنت بعد كسر عارض، أو جاء بعدها حرف استعلاء.',
+    amount: 'تفخيم',
+    letters: 'رَ  رُ  رْ بعد فتح أو ضمّ',
+    source: 'المقدمة الجزرية — باب الراءات',
+    evidence: 'وَرَقِّقِ الرَّاءَ إِذَا مَا كُسِرَتْ * كَذَاكَ بَعْدَ الكَسْرِ حَيْثُ سَكَنَتْ ‖ إِنْ لَمْ تَكُنْ مِنْ قَبْلِ حَرْفِ اسْتِعْلَا * أَوْ كَانَتِ الكَسْرَةُ لَيْسَتْ أَصْلَا',
+  ),
+  raMuraqqaqa(
+    color: Color(0xFF8FA7B8),
+    label: 'راء مرقّقة',
+    englishName: 'Light Ra',
+    family: TajweedFamily.tafkhim,
+    definition: 'الراء مرقّقة إذا كُسرت، أو سكنت بعد كسر أصلي ولم يأتِ بعدها حرف استعلاء. وفي «فِرْقٍ» وجهان.',
+    amount: 'ترقيق',
+    letters: 'رِ  رْ بعد كسر أصلي',
+    source: 'المقدمة الجزرية — باب الراءات',
+    evidence: 'وَرَقِّقِ الرَّاءَ إِذَا مَا كُسِرَتْ * كَذَاكَ بَعْدَ الكَسْرِ حَيْثُ سَكَنَتْ ‖ إِنْ لَمْ تَكُنْ مِنْ قَبْلِ حَرْفِ اسْتِعْلَا * أَوْ كَانَتِ الكَسْرَةُ لَيْسَتْ أَصْلَا',
+  ),
+  lamJalala(
+    color: Color(0xFF713F12),
+    label: 'تفخيم لام لفظ الجلالة',
+    englishName: 'Heavy Lam of Allah',
+    family: TajweedFamily.tafkhim,
+    definition: 'لام لفظ الجلالة تُفخَّم إذا سبقها فتح أو ضمّ، وتُرقَّق إذا سبقها كسر. والملوَّن هنا موضع التفخيم وحده، لأن الترقيق هو الأصل في سائر اللامات.',
+    amount: 'تفخيم بعد فتح أو ضمّ',
+    letters: 'لام «اللّٰه»',
+    source: 'المقدمة الجزرية — باب اللامات',
+    evidence: 'وَفَخِّمِ اللَّامَ مِنِ اسْمِ اللَّهِ * عَنْ فَتْحٍ اوْ ضَمٍّ كَعَبْدِ اللَّهِ',
   );
 
   const TajweedRule({
@@ -300,6 +396,13 @@ enum TajweedRule {
   /// it tints most of the page and buries everything else — hence its own
   /// switch.
   bool get isNaturalMadd => this == TajweedRule.maddNatural;
+
+  /// The tafkhim and tarqiq rules.
+  ///
+  /// The seven isti'la letters alone are 16,638 positions and the ra is
+  /// 12,403 — about thirty thousand, enough to tint the page the way the
+  /// natural madd would. Hence their own switch.
+  bool get isTafkhim => family == TajweedFamily.tafkhim;
 }
 
 /// A rule over `[start, end)` in UTF-16 code units of an ayah's text.

@@ -68,12 +68,23 @@ V = {
     47: "وَلاَزِمٌ إِنِ السُّكُونُ أُصِّلاَ * وَصْلاَ وَوَقْفاً بَعْدَ مَدٍّ طُوّلاَ",
     54: "يَجْمَعُهَا حُرُوفُ كَمْ عَسَلْ نَقَصْ * وَعَيْنُ ذُو وَجْهَيْنِ والطُّولُ أَخَصْ",
     55: "وَمَا سِوَي الحَرْفِ الثُّلاَثِي لاَ أَلِفْ * فَمُدُّه مَدّاً طَبِيعِيَّا أُلِفْ",
+    30: "إِنْ فِي الصِّفَاتِ وَالمَخَارِجِ اتَّفَقْ * حَرْفَانِ فَالْمِثْلاَنِ فِيهِمَا أَحَقْ",
+    31: "وَإِنْ يَكُونَا مَخْرَجاً تَقَارَبَا * وَفي الصِّفَاتِ اخْتَلَفَا يُلَقَّبَا",
+    32: "مُتْقَارِبَيْنِ أَوْ يَكُونَا اتَّفَقَا * فِي مَخْرَجٍ دُونَ الصِّفَاتِ حُقِّقَا",
+    33: "بِالْمُتَجَانِسَيْنِ ثُمَّ إِنْ سَكَنْ * أَوَّلُ كُلٍّ فَالصَّغِيرَ سَمِّيَنْ",
+    41: "وَاللِّينُ مِنْهَا الْيَا وَوَاوٌ سَكَنَا * إِنِ انْفِتَاحٌ قَبْلَ كُلٍّ أُعْلِنَا",
 }
 
 J_QALQALA_LETTERS = "قَلْقَلَةٌ قُطْبُ جَدٍ"
 J_QALQALA_WAQF = "وَبَيِّنَنْ مُقَلْقَلاً إِنْ سَكَنَا * وَإِنْ يَكُنْ فِي الوَقْفِ كَانَ أَبْيَنَا"
 J_GHUNNA = "وَأَظْهِرِ الغُنَّةَ مِنْ نُونٍ وَمِنْ * مِيمٍ إِذَا مَا شُدِّدَا"
 J_IKHFA_SHAFAWI = "وَأَخْفِيَنْ المِيمَ إِنْ تَسْكُنْ بِغُنَّةٍ * عِنْدَ البَاءِ عَلَى المُخْتَارِ مِنْ أَهْلِ الأَدَاءِ"
+J_ISTILA = "وَسَبْعُ عُلْوٍ خُصَّ ضَغْطٍ قِظْ حَصَرْ"
+J_TAFKHIM = "وَحَرْفَ الاسْتِعْلَاءِ فَخِّمْ وَاخْصُصَا * الإِطْبَاقَ أَقْوَى نَحْوُ قَالَ وَالعَصَا"
+J_TARQIQ = "فَرَقِّقَنْ مُسْتَفِلاً مِنْ أَحْرُفِ * وَحَاذِرَنْ تَفْخِيمَ لَفْظِ الأَلِفِ"
+J_RA = ("وَرَقِّقِ الرَّاءَ إِذَا مَا كُسِرَتْ * كَذَاكَ بَعْدَ الكَسْرِ حَيْثُ سَكَنَتْ ‖ "
+        "إِنْ لَمْ تَكُنْ مِنْ قَبْلِ حَرْفِ اسْتِعْلَا * أَوْ كَانَتِ الكَسْرَةُ لَيْسَتْ أَصْلَا")
+J_LAM = "وَفَخِّمِ اللَّامَ مِنِ اسْمِ اللَّهِ * عَنْ فَتْحٍ اوْ ضَمٍّ كَعَبْدِ اللَّهِ"
 
 D_SIFR = ("الصفر المستطيل القائم فوق الألف بعدها متحرّك يدلّ على زيادتها "
           "وصلًا لا وقفًا، نحو ﴿أَنَا۠ خَيْرٌ مِنْهُ﴾")
@@ -88,7 +99,10 @@ FAMILIES = [
     ("GHUNNA", "ghunna", "الغنّة", "Ghunnah"),
     ("NOON", "noon", "أحكام النون الساكنة والتنوين", "Noon Sakinah & Tanween"),
     ("MEEM", "meem", "أحكام الميم الساكنة", "Meem Sakinah"),
+    ("IDGHAM", "idgham", "المتماثلان والمتجانسان والمتقاربان",
+     "Mutamathilayn, Mutajanisayn & Mutaqaribayn"),
     ("QALQALA", "qalqala", "القلقلة", "Qalqalah"),
+    ("TAFKHIM", "tafkhim", "التفخيم والترقيق", "Tafkhim & Tarqiq"),
     ("MADD", "madd", "المدود", "Madd"),
     ("MUTE", "mute", "ما لا يُنطق كاملًا", "Not fully pronounced"),
 ]
@@ -282,6 +296,98 @@ RULES = [
         source="%s — وليست في المتنين" % DABT,
         evidence=D_SIFR,
     ),
+
+    # ── أُضيفت بعد مقابلة الأحكام على أبواب المتنين ──────────────────────────
+    #
+    # الثمانية التالية كانت ناقصة: ثلاثة أبواب كاملة من الجزرية (الترقيق
+    # والراءات واللامات)، وباب المثلين والمتجانسين والمتقاربين من التحفة،
+    # واللين. وترتيبها في الآخر **عمدًا**: فيكسشر التطابق يخزّن الأحكام برقمها،
+    # فأي إدراج في الوسط يبطله بصمت.
+    dict(
+        kt="IDGHAM_MUTAMATHILAYN", dart="idghamMutamathilayn", color="0xFF7C3AED",
+        label="إدغام متماثلين", en="Idgham Mutamathilayn", family="IDGHAM",
+        definition="حرفان اتّفقا مخرجًا وصفةً، أوّلهما ساكن، فيُدغم في الثاني "
+                   "فيُنطقان حرفًا واحدًا مشدّدًا — كـ«بَل لَّا» و«يُدْرِككُّم».",
+        amount="حرف واحد مشدّد",
+        letters="حرف + مثله",
+        source="%s ٣٠ و٣٣" % TUHFA,
+        evidence=V[30] + " ‖ " + V[33],
+    ),
+    dict(
+        kt="IDGHAM_MUTAJANISAYN", dart="idghamMutajanisayn", color="0xFF9D174D",
+        label="إدغام متجانسين", en="Idgham Mutajanisayn", family="IDGHAM",
+        definition="حرفان اتّفقا مخرجًا واختلفا صفةً، أوّلهما ساكن، فيُدغم في "
+                   "الثاني — كـ«قَد تَّبَيَّنَ» و«ٱرْكَب مَّعَنَا» و«إِذ ظَّلَمُوا».",
+        amount="حرف واحد مشدّد",
+        letters="د ت • ت د • ت ط • ذ ظ • ب م",
+        source="%s ٣٢ و٣٣" % TUHFA,
+        evidence=V[32] + " ‖ " + V[33],
+    ),
+    dict(
+        kt="IDGHAM_MUTAQARIBAYN", dart="idghamMutaqaribayn", color="0xFF0E7490",
+        label="إدغام متقاربين", en="Idgham Mutaqaribayn", family="IDGHAM",
+        definition="حرفان تقاربا مخرجًا واختلفا صفةً، أوّلهما ساكن، فيُدغم في "
+                   "الثاني — كـ«بَل رَّانَ» و«نَخْلُقكُّم».",
+        amount="حرف واحد مشدّد",
+        letters="ل ر • ق ك",
+        source="%s ٣١ و٣٣" % TUHFA,
+        evidence=V[31] + " ‖ " + V[33],
+    ),
+    dict(
+        kt="MADD_LEEN", dart="maddLeen", color="0xFFCA8A04",
+        label="مدّ لين", en="Madd Leen", family="MADD",
+        definition="واو أو ياء ساكنة قبلها فتح، فإن وُقِف عليها مُدَّت — "
+                   "كـ«خَوْف» و«قُرَيْش». وهو معلَّم هنا عند مواضع الوقف، فإن "
+                   "وصلتَ فلا مدَّ.",
+        amount="٢ أو ٤ أو ٦ حركات — عند الوقف",
+        letters="ـَوْ  ـَيْ",
+        source="%s ٤١" % TUHFA,
+        evidence=V[41],
+    ),
+
+    dict(
+        kt="TAFKHIM", dart="tafkhim", color="0xFF44403C",
+        label="تفخيم", en="Tafkhim", family="TAFKHIM",
+        definition="حروف الاستعلاء السبعة «خُصَّ ضَغْطٍ قِظْ» تُفخَّم دائمًا، "
+                   "ويقوى التفخيم في المُطبَقة منها: ص ض ط ظ. وما سواها من "
+                   "الحروف المستفِلة يُرقَّق.",
+        amount="تفخيم دائم",
+        letters="خ ص ض غ ط ق ظ",
+        source="%s — صفات الحروف وباب الترقيق وباب اللامات" % JAZ,
+        evidence=J_ISTILA + " ‖ " + J_TAFKHIM + " ‖ " + J_TARQIQ,
+    ),
+    dict(
+        kt="RA_MUFAKHKHAMA", dart="raMufakhkhama", color="0xFF7C2D12",
+        label="راء مفخّمة", en="Heavy Ra", family="TAFKHIM",
+        definition="الراء مفخّمة في الأصل: إذا فُتحت أو ضُمّت، أو سكنت بعد فتح "
+                   "أو ضمّ، أو سكنت بعد كسر عارض، أو جاء بعدها حرف استعلاء.",
+        amount="تفخيم",
+        letters="رَ  رُ  رْ بعد فتح أو ضمّ",
+        source="%s — باب الراءات" % JAZ,
+        evidence=J_RA,
+    ),
+    dict(
+        kt="RA_MURAQQAQA", dart="raMuraqqaqa", color="0xFF8FA7B8",
+        label="راء مرقّقة", en="Light Ra", family="TAFKHIM",
+        definition="الراء مرقّقة إذا كُسرت، أو سكنت بعد كسر أصلي ولم يأتِ بعدها "
+                   "حرف استعلاء. وفي «فِرْقٍ» وجهان.",
+        amount="ترقيق",
+        letters="رِ  رْ بعد كسر أصلي",
+        source="%s — باب الراءات" % JAZ,
+        evidence=J_RA,
+    ),
+    dict(
+        kt="LAM_JALALA", dart="lamJalala", color="0xFF713F12",
+        label="تفخيم لام لفظ الجلالة", en="Heavy Lam of Allah",
+        family="TAFKHIM",
+        definition="لام لفظ الجلالة تُفخَّم إذا سبقها فتح أو ضمّ، وتُرقَّق إذا "
+                   "سبقها كسر. والملوَّن هنا موضع التفخيم وحده، لأن الترقيق هو "
+                   "الأصل في سائر اللامات.",
+        amount="تفخيم بعد فتح أو ضمّ",
+        letters="لام «اللّٰه»",
+        source="%s — باب اللامات" % JAZ,
+        evidence=J_LAM,
+    ),
 ]
 
 HEAD_AR = """أحكام التجويد المعروضة على صفحة المصحف: لون لكل حكم، واسمه وشرحه ومرجعه.
@@ -388,6 +494,15 @@ def gen_kotlin(package, with_english, with_hit=True):
      * ويغطّي على باقي الأحكام. فله مفتاح منفصل.
      */
     val isNaturalMadd: Boolean get() = this == MADD_NATURAL
+
+    /**
+     * `true` لأحكام التفخيم والترقيق.
+     *
+     * حروف الاستعلاء وحدها ١٦٬٦٣٨ موضعًا، والراءات ١٢٬٤٠٣ — أي قرابة
+     * ثلاثين ألفًا، وهي تصبغ الصفحة كما كان المدّ الطبيعي يفعل. فلها
+     * مفتاح منفصل.
+     */
+    val isTafkhim: Boolean get() = family == TajweedFamily.TAFKHIM
 }
 
 /** عائلة الحكم — ترتّب مفتاح الألوان فقط، ولا أثر لها على الرسم. */
@@ -506,6 +621,13 @@ def gen_dart():
   /// it tints most of the page and buries everything else — hence its own
   /// switch.
   bool get isNaturalMadd => this == TajweedRule.maddNatural;
+
+  /// The tafkhim and tarqiq rules.
+  ///
+  /// The seven isti'la letters alone are 16,638 positions and the ra is
+  /// 12,403 — about thirty thousand, enough to tint the page the way the
+  /// natural madd would. Hence their own switch.
+  bool get isTafkhim => family == TajweedFamily.tafkhim;
 }
 
 /// A rule over `[start, end)` in UTF-16 code units of an ayah's text.
@@ -563,7 +685,7 @@ if os.path.isdir(APP):
 
 def main():
     names = [r["kt"] for r in RULES]
-    assert len(names) == len(set(names)) == 18, names
+    assert len(names) == len(set(names)) == 26, names
     for path, fn in TARGETS:
         if not os.path.isdir(os.path.dirname(path)):
             print("skip (missing dir):", path)

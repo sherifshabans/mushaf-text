@@ -43,6 +43,7 @@ class _MushafReaderState extends State<MushafReader> {
   // should get the page they know, and turn the colours on deliberately.
   bool _tajweed = false;
   bool _naturalMadd = false;
+  bool _tafkhim = false;
   bool _dark = false;
 
   /// The rule being walked through on this page, if any.
@@ -72,7 +73,8 @@ class _MushafReaderState extends State<MushafReader> {
   Future<void> _loadCounts() async {
     final page = _page;
     final counts = _tajweed
-        ? await pageTajweedCounts(page, includeNaturalMadd: _naturalMadd)
+        ? await pageTajweedCounts(page,
+            includeNaturalMadd: _naturalMadd, includeTafkhim: _tafkhim)
         : const <MapEntry<TajweedRule, int>>[];
     if (!mounted || page != _page) return;
     setState(() => _counts = counts);
@@ -99,6 +101,14 @@ class _MushafReaderState extends State<MushafReader> {
   void _setNaturalMadd(bool on) {
     setState(() {
       _naturalMadd = on;
+      _focus = null;
+    });
+    _loadCounts();
+  }
+
+  void _setTafkhim(bool on) {
+    setState(() {
+      _tafkhim = on;
       _focus = null;
     });
     _loadCounts();
@@ -163,6 +173,7 @@ class _MushafReaderState extends State<MushafReader> {
                         colors: colors,
                         tajweed: _tajweed,
                         tajweedNaturalMadd: _naturalMadd,
+                        tajweedTafkhim: _tafkhim,
                         focusRule: i + 1 == _page ? _focus : null,
                         focusIndex: _focusIndex,
                         onTajweedTap: _showRule,
@@ -259,12 +270,17 @@ class _MushafReaderState extends State<MushafReader> {
           counts: _counts,
           tajweed: _tajweed,
           naturalMadd: _naturalMadd,
+          tafkhim: _tafkhim,
           onTajweed: (v) {
             _setTajweed(v);
             Navigator.pop(context);
           },
           onNaturalMadd: (v) {
             _setNaturalMadd(v);
+            Navigator.pop(context);
+          },
+          onTafkhim: (v) {
+            _setTafkhim(v);
             Navigator.pop(context);
           },
           onRule: (rule) {
@@ -573,8 +589,10 @@ class _BrowseSheet extends StatefulWidget {
     required this.counts,
     required this.tajweed,
     required this.naturalMadd,
+    required this.tafkhim,
     required this.onTajweed,
     required this.onNaturalMadd,
+    required this.onTafkhim,
     required this.onRule,
     required this.onExplain,
     required this.onSurah,
@@ -585,8 +603,10 @@ class _BrowseSheet extends StatefulWidget {
   final List<MapEntry<TajweedRule, int>> counts;
   final bool tajweed;
   final bool naturalMadd;
+  final bool tafkhim;
   final ValueChanged<bool> onTajweed;
   final ValueChanged<bool> onNaturalMadd;
+  final ValueChanged<bool> onTafkhim;
   final ValueChanged<TajweedRule> onRule;
   final ValueChanged<TajweedRule> onExplain;
   final ValueChanged<Surah> onSurah;
@@ -661,6 +681,13 @@ class _BrowseSheetState extends State<_BrowseSheet> {
           subtitle: const Text('أكثر حكم تكرارًا — تلوينه يصبغ الصفحة'),
           value: widget.naturalMadd,
           onChanged: widget.tajweed ? widget.onNaturalMadd : null,
+        ),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('التفخيم والترقيق'),
+          subtitle: const Text('حروف الاستعلاء والراء ولام الجلالة — نحو ٣٠ ألف موضع'),
+          value: widget.tafkhim,
+          onChanged: widget.tajweed ? widget.onTafkhim : null,
         ),
         const Divider(),
         Padding(

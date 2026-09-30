@@ -16,7 +16,7 @@ optional colour-coded **tajweed** mode in which every rule carries its source.
 - ٦٠٤ صفحات، ١٥ سطرًا، وكسر السطور **نفس** المطبوع لا تقديرًا له. والسطور
   الممدودة والمتوسّطة مقيسة من صور المصحف نفسه.
 - خط **KFGQPC HAFS Uthmanic Script** — التنوين المرصوص والوردة برقمها مضبوطان.
-- ١٨ حكم تجويد، لكل حكم لونه، ولمس الحرف الملوّن يعطيك الحكم وشرحه **ومرجعه**
+- ٢٦ حكم تجويد، لكل حكم لونه، ولمس الحرف الملوّن يعطيك الحكم وشرحه **ومرجعه**
   من تحفة الأطفال أو المقدمة الجزرية برقم البيت ونصّه.
 - يعمل بلا إنترنت تمامًا: النصّ والخط والتخطيط داخل الحزمة. لا شبكة ولا API.
 - التلوين **لا يحرّك** حرفًا واحدًا في الصفحة — متحقَّق منه بالقياس لا بالافتراض.
@@ -28,7 +28,7 @@ optional colour-coded **tajweed** mode in which every rule carries its source.
   the mushaf itself.
 - The **KFGQPC HAFS Uthmanic Script** font, so the stacked tanween and the
   numbered ayah rosette come out right.
-- 18 tajweed rules, a colour each. Tapping a coloured letter returns the rule,
+- 26 tajweed rules, a colour each. Tapping a coloured letter returns the rule,
   its explanation, and **its reference** — the matn, the verse number, and the
   verse itself.
 - Fully offline: text, font and layout all ship inside the package. No network,
@@ -39,7 +39,7 @@ optional colour-coded **tajweed** mode in which every rule carries its source.
 
 ```yaml
 dependencies:
-  mushaf_text: ^1.1.1
+  mushaf_text: ^1.2.0
 ```
 
 ## الاستعمال · Use
@@ -147,11 +147,15 @@ Every rule carries `source` and `evidence`: the matn it comes from, its verse
 number, and the verse in its own words, shown to the reader in the app.
 
 - **تحفة الأطفال والغلمان** للجمزوري (ت ١١٩٨ هـ) — أحكام النون الساكنة والتنوين،
-  والميم الساكنة، ولام «أل»، والمدود.
+  والميم الساكنة، ولام «أل»، والمدود، والمتماثلان والمتجانسان والمتقاربان،
+  واللين.
   *al-Jamzūrī (d. 1198 AH) — the noon sākinah and tanwīn rules, the meem sākinah
   rules, the lām of «أل», and the madd rules.*
-- **المقدمة الجزرية** لابن الجزري (ت ٨٣٣ هـ) — القلقلة والغنّة وإخفاء الميم.
-  *Ibn al-Jazarī (d. 833 AH) — qalqalah, ghunnah, and the ikhfāʾ of the meem.*
+- **المقدمة الجزرية** لابن الجزري (ت ٨٣٣ هـ) — القلقلة والغنّة وإخفاء الميم،
+  والتفخيم والترقيق: حروف الاستعلاء، وباب الراءات، وتفخيم لام لفظ الجلالة.
+  *Ibn al-Jazarī (d. 833 AH) — qalqalah, ghunnah, the ikhfāʾ of the meem, and
+  tafkhīm and tarqīq: the istiʿlāʾ letters, the chapter on the rāʾ, and the
+  heavy lām of the divine name.*
 - **التعريف بمصحف المدينة النبوية** (مجمّع الملك فهد) — علامات الضبط: الصفر
   المستطيل القائم، والواو والياء الصغيرتان، وهمزة الوصل.
   *(King Fahd Complex) — the notation: the upright rectangular zero, the small
@@ -185,6 +189,14 @@ to its own habits, over the whole mushaf:
   *Tuhfa vv.7–8 — no iẓhār ḥalqī is ever coloured.*
 - **دليل الضبط** — مواضع الألف الزائدة الـ٦٦ كلها ألف، ونصّ الحكم «تسقط وصلًا
   وتثبت وقفًا» لا «لا تُنطق».
+- **تحفة ٣٠–٣٣** — أزواج المتجانسين هي المعروفة وحدها (د ت، ت د، ت ط، ذ ظ،
+  ب م)، والمتقاربين (ل ر، ق ك)، ولا زوج خارجها.
+  *Tuhfa vv.30–33 — the mutajanisayn and mutaqaribayn pairs are exactly the
+  ones the reciters name, and no others.*
+- **الجزرية، باب الترقيق** — لا يُفخَّم حرف ليس من «خص ضغط قظ»، وكل راء
+  مرقّقة مكسورة أو ساكنة بعد كسر.
+  *al-Jazariyya — nothing outside the seven istiʿlāʾ letters is ever marked
+  heavy, and every light rāʾ carries a kasra or a sukun after one.*
   *The notation guide — all 66 extra-alef positions are alef, and the rule reads
   «dropped in waṣl, kept in waqf», not «silent».*
 
@@ -197,6 +209,33 @@ to its own habits, over the whole mushaf:
 > through the 18 explanatory texts end to end. The rulings are sourced; the
 > phrasing of the explanations is ours, and a teacher's eye would be worth more
 > than another test.
+
+## ما لا تغطّيه · What it does not cover
+
+الصمت هنا يوحي بالاكتمال، فهذه قائمة ما ليس في المكتبة:
+
+Silence here would imply completeness, so this is what the library does **not**
+do:
+
+- **ما لا يتغيّر فيه النطق لا يُلوَّن** عن قصد: الإظهار بأنواعه (الحلقي
+  والشفوي والمطلق)، واللام القمرية، ولام الفعل. تلوينها يوهم القارئ أن فيها
+  عملًا.
+  <br>*Anything that changes nothing in the pronunciation is left uncoloured on
+  purpose: all three kinds of izhar, the lunar lam, and the lam of a verb.*
+- **السكت** في مواضعه الأربعة عند حفص، و**الإمالة** في ﴿مَجْر۪ىٰهَا﴾،
+  و**التسهيل** في ﴿ءَا۬عْجَمِىٌّ﴾، و**الإشمام** في ﴿لَا تَأْمَ۬نَّا﴾ — معلَّمة
+  في الرسم ولم تُنفَّذ بعد.
+  <br>*The four saktas, the imala, the tasheel and the ishmam are marked in the
+  script but not implemented yet.*
+- **الروم والإشمام في الوقف**، و**مخارج الحروف وصفاتها** عمومًا — وصفيّة لا
+  تُعلَّم على حرف بعينه.
+  <br>*Rawm and ishmam at a stop, and the makharij and sifat in general, are
+  descriptive and do not attach to one letter.*
+- **المقطوع والموصول وهاء التأنيث** — أبواب رسم لا تلوين.
+  <br>*The chapters on joined and separated words are about orthography, not
+  colouring.*
+- **علامات الوقف** تُعرض كما هي ولا يقع عليها لون.
+  <br>*The waqf signs are drawn as they are and never take a colour.*
 
 ## لماذا لا يكسر التلوينُ الصفحةَ · Why colouring cannot break the page
 

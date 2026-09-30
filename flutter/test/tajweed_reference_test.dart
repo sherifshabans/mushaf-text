@@ -215,4 +215,183 @@ void main() {
       expect(wrong, 0, reason: 'نون مظهَرة لُوِّنت $wrong مرة');
     });
   });
+
+  // ── الأحكام المضافة بعد مقابلة الكود على أبواب المتنين ──────────────────
+  //
+  // كلٌّ منها يُحاكَم هنا إلى بابه، لا إلى ما يخرجه الكود عن نفسه: العدد وحده
+  // يمرّ حتى لو كان الحكم واقعًا على حرف آخر.
+
+  List<TajweedSpan> all(String t) =>
+      TajweedAnnotator.annotate(t, includeNaturalMadd: true, includeTafkhim: true);
+
+  group('تحفة الأطفال ٣٠–٣٣: المتماثلان والمتجانسان والمتقاربان', () {
+    // الحرف الأول عارٍ والثاني مشدّد، والتقسيم بالمخرج والصفة. فالمتجانسان
+    // أزواج معدودة عند القرّاء، والمتقاربان كذلك — فإن خرج زوج غيرها فالكود
+    // صنّف شيئًا ليس منها.
+    test('أزواج المتجانسين والمتقاربين هي المعروفة وحدها', () {
+      final janis = <String, int>{};
+      final qarib = <String, int>{};
+      final mithl = <String, int>{};
+      for (final r in ayahs) {
+        final text = textOf(r);
+        for (final s in all(text)) {
+          const want = {
+            TajweedRule.idghamMutajanisayn,
+            TajweedRule.idghamMutaqaribayn,
+            TajweedRule.idghamMutamathilayn,
+          };
+          if (!want.contains(s.rule)) continue;
+          var j = s.end;
+          while (j < text.length && isMark(text.codeUnitAt(j))) {
+            j++;
+          }
+          while (j < text.length && text[j] == ' ') {
+            j++;
+          }
+          if (j >= text.length) continue;
+          final pair = '${text[s.start]}${text[j]}';
+          final into = s.rule == TajweedRule.idghamMutajanisayn
+              ? janis
+              : s.rule == TajweedRule.idghamMutaqaribayn
+                  ? qarib
+                  : mithl;
+          into[pair] = (into[pair] ?? 0) + 1;
+        }
+      }
+
+      expect(janis.keys.toSet(), {'دت', 'تط', 'ذظ', 'تد', 'بم'},
+          reason: 'زوج متجانسين خارج المعروف: ${janis.keys}');
+      expect(qarib.keys.toSet(), {'لر', 'قك'},
+          reason: 'زوج متقاربين خارج المعروف: ${qarib.keys}');
+      for (final p in mithl.keys) {
+        expect(p[0], p[1], reason: 'متماثلان وحرفاهما مختلفان: $p');
+      }
+      expect(janis['بم'], 1, reason: '«ٱرْكَب مَّعَنَا» موضع واحد');
+      expect(qarib['قك'], 1, reason: '«نَخْلُقكُّم» موضع واحد');
+    });
+
+    test('لام «أل» بعد لام الجرّ لام شمسية لا إدغام', () {
+      // بعد لام الجرّ تسقط ألف «أل» من الرسم، فكانت اللام تُقرأ إدغام
+      // متقاربين — ١٤٣ موضعًا بحكم خاطئ. ولا يصحّ البحث عنها بنصّ مكتوب
+      // باليد: الرسم يضع الحركة بعد الشدّة، فلا يطابق المكتوب.
+      var checked = 0;
+      for (final r in ayahs) {
+        final text = textOf(r);
+        final spans = all(text);
+        for (var i = 1; i < text.length - 1; i++) {
+          if (text[i] != 'ل') continue;
+          // «لِل»: الكسرة تقع بين اللامين، فالحرف السابق ليس الخانة السابقة.
+          var b = i - 1;
+          while (b >= 0 && isMark(text.codeUnitAt(b))) {
+            b--;
+          }
+          if (b < 0 || text[b] != 'ل') continue;
+          // اللام الثانية عارية، ويليها حرف شمسي مشدّد في الكلمة نفسها.
+          var j = i + 1;
+          if (j >= text.length || isMark(text.codeUnitAt(j))) continue;
+          if (!'تثدذرزسشصضطظلن'.contains(text[j])) continue;
+          var k = j + 1;
+          var shadda = false;
+          while (k < text.length && isMark(text.codeUnitAt(k))) {
+            if (text.codeUnitAt(k) == 0x0651) shadda = true;
+            k++;
+          }
+          if (!shadda) continue;
+          checked++;
+          final hit = spans.where((s) => s.start <= i && s.end > i);
+          expect(hit.isNotEmpty, isTrue, reason: 'لام «أل» بلا حكم');
+          expect(hit.first.rule, TajweedRule.lamShamsiyya,
+              reason: 'لام «أل» أُعطيت ${hit.first.rule}');
+        }
+      }
+      expect(checked, greaterThan(20), reason: 'لم تُفحص الحالة أصلًا');
+    });
+  });
+
+  group('الجزرية: التفخيم والترقيق', () {
+    test('لا يُفخَّم إلا حرف استعلاء', () {
+      const istila = 'خصضغطقظ';
+      var n = 0;
+      for (final r in ayahs) {
+        final text = textOf(r);
+        for (final s in all(text)) {
+          if (s.rule != TajweedRule.tafkhim) continue;
+          n++;
+          expect(istila.contains(text[s.start]), isTrue,
+              reason: 'فُخِّم حرف ليس من الاستعلاء: ${text[s.start]}');
+        }
+      }
+      expect(n, greaterThan(10000));
+    });
+
+    test('كل راء ملوَّنة راءٌ، والمرقّقة مكسورة أو ساكنة بعد كسر', () {
+      var heavy = 0, light = 0;
+      for (final r in ayahs) {
+        final text = textOf(r);
+        for (final s in all(text)) {
+          final isRa = s.rule == TajweedRule.raMufakhkhama ||
+              s.rule == TajweedRule.raMuraqqaqa;
+          if (!isRa) continue;
+          expect(text[s.start], 'ر',
+              reason: 'حكم الراء على حرف آخر: ${text[s.start]}');
+          if (s.rule == TajweedRule.raMuraqqaqa) {
+            light++;
+            final marks = text.substring(s.start + 1, s.end);
+            final kasra = marks.contains('\u0650') ||
+                marks.contains('\u064D') ||
+                marks.contains('\u0656');
+            final sakin =
+                marks.contains('\u0652') || marks.contains('\u06E1');
+            expect(kasra || sakin, isTrue,
+                reason: 'راء مرقّقة بلا كسر ولا سكون');
+          } else {
+            heavy++;
+          }
+        }
+      }
+      // الأصل في الراء التفخيم، فالمفخّمة أكثر من المرقّقة.
+      expect(heavy, greaterThan(light));
+      expect(light, greaterThan(1000));
+    });
+
+    test('لام الجلالة المفخّمة لام «الله» وقبلها فتح أو ضمّ', () {
+      var n = 0;
+      for (final r in ayahs) {
+        final text = textOf(r);
+        for (final s in all(text)) {
+          if (s.rule != TajweedRule.lamJalala) continue;
+          n++;
+          expect(text[s.start], 'ل');
+          // اللام المشدّدة في «ٱللَّه»: قبلها لام، وبعدها هاء. والعلامات تقع
+          // بين الحرفين، فالرجوع خطوةً واحدة يقع على حركة لا على حرف.
+          var p = s.start - 1;
+          while (p >= 0 && isMark(text.codeUnitAt(p))) {
+            p--;
+          }
+          expect(p >= 0 ? text[p] : '', 'ل',
+              reason: 'لام جلالة بلا لام قبلها');
+        }
+      }
+      expect(n, greaterThan(1000));
+    });
+  });
+
+  group('تحفة الأطفال ٤١: اللين', () {
+    test('كل مدّ لين واو أو ياء ساكنة بعد فتح', () {
+      var n = 0;
+      for (final r in ayahs) {
+        final text = textOf(r);
+        for (final s in all(text)) {
+          if (s.rule != TajweedRule.maddLeen) continue;
+          n++;
+          expect(['و', 'ي'].contains(text[s.start]), isTrue,
+              reason: 'لين على حرف غير الواو والياء: ${text[s.start]}');
+          final marks = text.substring(s.start + 1, s.end);
+          expect(marks.contains('\u0652') || marks.contains('\u06E1'), isTrue,
+              reason: 'لين على حرف متحرّك');
+        }
+      }
+      expect(n, greaterThan(0), reason: 'لم يظهر مدّ لين ولا مرة');
+    });
+  });
 }

@@ -1,3 +1,35 @@
+## 1.2.0
+
+ثمانية أحكام كانت أبوابها في المتنين ولم تكن في الكود.
+
+Eight rules the matns cover and the code did not.
+
+- **التفخيم والترقيق** — ثلاثة أبواب كاملة من الجزرية لم تكن مُنفَّذة: حروف
+  الاستعلاء «خُصَّ ضَغْطٍ قِظْ»، وباب الراءات (مفخّمة ومرقّقة)، وتفخيم لام لفظ
+  الجلالة. ولها مفتاحها `tajweedTafkhim` لأنها نحو ٣٠ ألف موضع، فتصبغ الصفحة
+  كما يفعل المدّ الطبيعي.
+  <br>*Three whole chapters of al-Jazariyya that were not implemented: the seven
+  istiʿlāʾ letters, the chapter on the rāʾ, and the heavy lām of the divine
+  name. Behind `tajweedTafkhim`, being some 30,000 positions.*
+- **المتماثلان والمتجانسان والمتقاربان** (تحفة الأطفال ٣٠–٣٣) — والرسم يكتبها
+  بنفس إشارة إدغام النون، فخرجت أزواجها هي المعروفة عند القرّاء وحدها.
+  <br>*The script writes them with the same signal it uses for the noon, and the
+  pairs that come out are exactly the ones the reciters name.*
+- **مدّ اللين** (تحفة ٤١) عند مواضع الوقف.
+- **تصحيح:** لام «أل» بعد لام الجرّ — «لِلنَّاسِ» و«لِلتَّقْوَىٰ» — كانت تسقط
+  ألفها من الرسم فلا يراها المرور الأول، فتُقرأ **إدغام متقاربين**. ١٤٣ موضعًا
+  بحكم خاطئ، وهي لام شمسية.
+  <br>***Fixed:** after the preposition lām the article's alef drops out of the
+  script, so «لِلنَّاسِ» was being read as idghām mutaqāribayn. 143 positions
+  with the wrong ruling; they are a solar lām.*
+- الـREADME يذكر الآن **ما لا تغطّيه** المكتبة صراحةً — السكت والإمالة والتسهيل
+  والإشمام وما لا يتغيّر فيه النطق — بعد أن كان السكوت يوحي بالاكتمال.
+  <br>*The README now states what the library does **not** cover.*
+- فيكسشر التطابق صار يشغّل كل المفاتيح، فالأحكام الستة والعشرون كلها مقابَلة بين
+  Kotlin وDart: **١١٤٬٣٣١ موضعًا**.
+  <br>*The parity fixture now switches every rule on, so all 26 are compared
+  across the two ports: 114,331 spans.*
+
 ## 1.1.1
 
 توثيق بالعربي والإنجليزي، بلا أي تغيير في الكود.
