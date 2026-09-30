@@ -1,0 +1,32 @@
+name: mushaf_text
+description: >-
+  The Madinah Mushaf as real text for Flutter — the printed page layout, and
+  tajweed rules coloured letter by letter.
+version: 1.3.0
+repository: https://github.com/sherifshabans/mushaf-text
+issue_tracker: https://github.com/sherifshabans/mushaf-text/issues
+
+environment:
+  sdk: ^3.10.4
+  flutter: ">=3.24.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  assets:
+    - assets/mushaf/hafs.tsv
+    - assets/mushaf/layout.txt
+
+  fonts:
+    # KFGQPC HAFS Uthmanic Script. The licence permits free use and
+    # redistribution but **forbids modification** — ship it byte for byte.
+    - family: MushafHafs
+      fonts:
+        - asset: assets/mushaf/uthmanic_hafs.ttf
