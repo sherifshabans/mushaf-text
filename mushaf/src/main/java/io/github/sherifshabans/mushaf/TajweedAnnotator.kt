@@ -154,18 +154,34 @@ object TajweedAnnotator {
     }
 
     /**
+     * هل الحرف في [i] مجرّد كرسي لتنوين الحرف اللي قبله؟
+     *
+     * الألف في «رُسُلًا» والألف المقصورة في «هُدٗى» شايلين التنوين ومش بيتنطقوا
+     * وصلًا: «رُسُلًا إِلَىٰ» تنوين قبل همزة — إظهار حلقي (تحفة الأطفال ٧–٨) —
+     * ومفيش مدّ قبل الهمزة. قراءتهم حرف مدّ كانت بتطلّع ٢٠٦ مدّ منفصل و٢٤٨٠
+     * مدّ طبيعي مالهمش أصل.
+     */
+    private fun seatsTanween(t: String, i: Int): Boolean {
+        if (t[i] != 'ا' && t[i] != 'ى') return false
+        val p = prevLetter(t, i)
+        if (p < 0 || crossesWord(t, p, i)) return false
+        return marksAfter(t, p).any { it in OPEN_TANWEEN || it in STACKED_TANWEEN }
+    }
+
+    /**
      * هل الحرف في [i] حرف مدّ؟
      *
      * ألف أو ألف خنجرية دائمًا، وواو بعد ضمّة، وياء بعد كسرة — والاتنين لازم
-     * يكونوا بدون حركة عليهم.
+     * يكونوا بدون حركة عليهم. وألف التنوين ما بتتحسبش إلا لو الآية وقفت عليها:
+     * ساعتها التنوين بيتقلب ألف بحركتين (مدّ العوض).
      */
     private fun isMaddLetter(t: String, i: Int): Boolean {
         val c = t[i]
         if (c == SUP_ALEF) return true
-        if (c == 'ا' && isBare(t, i)) return true
         if (!isBare(t, i)) return false
+        if (seatsTanween(t, i)) return nextLetter(t, i) < 0
         return when (c) {
-            'ى' -> true
+            'ا', 'ى' -> true
             'و', 'ي' -> {
                 val p = prevLetter(t, i)
                 if (p < 0) false else {

@@ -331,12 +331,12 @@ These are the limits of what the library covers:
 cd flutter && flutter test
 ```
 
-منها `tajweed_parity_test.dart` الذي يثبّت تنفيذ Dart على تنفيذ Kotlin في ٨٥٬٣٨٦
+منها `tajweed_parity_test.dart` الذي يثبّت تنفيذ Dart على تنفيذ Kotlin في ١١٢٬٥٣٣
 موضعًا عبر الآيات الـ٦٢٣٦، و`tajweed_reference_test.dart` الذي يحاكم الكود إلى
 المتون.
 
 Among them `tajweed_parity_test.dart`, which pins the Dart implementation to the
-Kotlin one across 85,386 spans in all 6236 verses, and
+Kotlin one across 112,533 spans in all 6236 verses, and
 `tajweed_reference_test.dart`, which holds the code to the matns.
 
 ## التطبيق التجريبي · Sample app

@@ -1,3 +1,15 @@
+## Unreleased
+
+- ألف التنوين ليست حرف مدّ: «رُسُلًا إِلَىٰ» تنوين قبل همزة، أي إظهار، فلا مدّ
+  منفصل قبل الهمزة، ولا مدّ طبيعي على «هُدٗى». وتُعدّ مدًّا عند الوقف عليها في
+  آخر الآية وحده. سقط بذلك ٢٠٦ مدًّا منفصلًا و٢٤٨٠ طبيعيًّا لا أصل لها، في
+  Kotlin ودارت معًا.
+  <br>*The alef that seats a tanween is no letter of madd: «رُسُلًا إِلَىٰ» is a
+  tanween before a hamza — izhar — with no munfasil madd before the hamza, and
+  «هُدٗى» takes no natural madd. It counts as a madd only where the ayah stops
+  on it. That drops 206 munfasil and 2480 natural madds that were never there,
+  in Kotlin and Dart alike.*
+
 ## 1.4.0
 
 التفخيم والترقيق أحكام كسائر الأحكام، فلا مفتاح لها.
