@@ -180,16 +180,33 @@ abstract final class TajweedAnnotator {
     return false;
   }
 
+  /// Does the letter at [i] only seat the tanween of the letter before it?
+  ///
+  /// The alef in «رُسُلًا» and the alef maqsura in «هُدٗى» carry a tanween and
+  /// are not read in connected speech: «رُسُلًا إِلَىٰ» is a tanween meeting a
+  /// hamza — izhar — with no madd before the hamza. Reading them as letters of
+  /// prolongation gave 206 phantom munfasil madds and 2480 natural ones.
+  static bool _seatsTanween(String t, int i) {
+    if (t[i] != 'ا' && t[i] != 'ى') return false;
+    final p = _prevLetter(t, i);
+    if (p < 0 || _crossesWord(t, p, i)) return false;
+    return _marksAfter(t, p).codeUnits.any(
+        (m) => _openTanween.contains(m) || _stackedTanween.contains(m));
+  }
+
   /// Is the letter at [i] a letter of prolongation?
   ///
   /// An alef or a dagger alef always; a waw after a dammah and a yeh after a
-  /// kasrah — and both of those must carry no vowel of their own.
+  /// kasrah — and both of those must carry no vowel of their own. The alef that
+  /// seats a tanween counts only where the ayah stops on it: there the tanween
+  /// turns into a two-count alef (madd al-ʿiwad).
   static bool _isMaddLetter(String t, int i) {
     final c = t[i];
     if (t.codeUnitAt(i) == _supAlef) return true;
-    if (c == 'ا' && _isBare(t, i)) return true;
     if (!_isBare(t, i)) return false;
+    if (_seatsTanween(t, i)) return _nextLetter(t, i) < 0;
     switch (c) {
+      case 'ا':
       case 'ى':
         return true;
       case 'و':

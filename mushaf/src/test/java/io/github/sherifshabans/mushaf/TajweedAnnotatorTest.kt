@@ -215,6 +215,51 @@ class TajweedAnnotatorTest {
         }
     }
 
+    /**
+     * ألف التنوين مش حرف مدّ (تحفة الأطفال ٧–٨).
+     *
+     * التنوين نون ساكنة، فلو جت بعده همزة يبقى إظهار حلقي: «رُسُلًا إِلَىٰ»
+     * بتتقري رُسُلَنْ إِلَى، والألف اللي بعد التنوين ما بتتنطقش وصلًا — فلا مدّ
+     * منفصل قبل الهمزة ولا مدّ طبيعي. بتتنطق ألف بحركتين بس لو وقفت عليها
+     * (مدّ العوض)، وده ما بيحصلش غير في آخر الآية.
+     */
+    @Test
+    fun tanweenSeatIsNoMaddLetter() {
+        val tanween = setOf('ً', 'ٌ', 'ٍ', 'ٖ', 'ٗ', 'ٞ')
+        var seats = 0
+        val wrong = ArrayList<String>()
+        allAyat().forEach { aya ->
+            val t = aya.text
+            val spans = TajweedAnnotator.annotate(t, includeNaturalMadd = true)
+            var last = t.length - 1
+            while (last > 0 && (isMark(t[last]) || t[last] == ' ' || t[last] in '٠'..'٩')) last--
+            for (i in 1 until t.length) {
+                if (t[i] != 'ا' && t[i] != 'ى') continue
+                if (t[i - 1] !in tanween) continue
+                seats++
+                spans.filter { i >= it.start && i < it.end }.forEach { s ->
+                    if (i != last || s.rule != TajweedRule.MADD_NATURAL) {
+                        wrong += "${aya.sora}:${aya.ayaNo} «${wordAt(t, i)}» ${s.rule}"
+                    }
+                }
+            }
+        }
+        println("ألف تنوين اتفحصت: $seats")
+        assertTrue("${wrong.size} ألف تنوين اتلوّنت: ${wrong.take(10)}", wrong.isEmpty())
+        assertTrue("ما اتفحصتش ألف تنوين أصلًا", seats > 2000)
+    }
+
+    @Test
+    fun rusulanIlaHasNoMaddBeforeTheHamza() {
+        // «رُسُلًا إِلَىٰ» (يونس ٧٤): ر ُ س ُ ل ً ا — الألف كرسي التنوين
+        val t = textOf(10, 74)
+        val word = t.indexOf("رُسُلًا")
+        assertTrue("«رُسُلًا» مش موجودة في يونس ٧٤", word >= 0)
+        val alef = word + 6
+        assertEquals('ا', t[alef])
+        assertEquals(null, ruleAt(t, alef))
+    }
+
     /** المدّ الطبيعي مقفول افتراضيًا — والفرق بينه وبين المفتوح كبير. */
     @Test
     fun naturalMaddIsOptional() {

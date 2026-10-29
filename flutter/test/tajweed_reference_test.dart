@@ -113,6 +113,52 @@ void main() {
     });
   });
 
+  group('تحفة الأطفال — الأبيات ٧ و٨: ألف التنوين لا مدّ فيها', () {
+    // التنوين نون ساكنة، فإذا لقي همزة فهو إظهار حلقي: «رُسُلًا إِلَىٰ» تُقرأ
+    // رُسُلَنْ إِلَى، والألف بعد التنوين لا تُنطق وصلًا، فلا مدّ منفصل قبل
+    // الهمزة ولا مدّ طبيعي. وإنما تُنطق عند الوقف عليها ألفًا بحركتين (مدّ
+    // العوض)، وهذا لا يقع إلا في آخر الآية.
+    const tanween = [0x064B, 0x064C, 0x064D, 0x0656, 0x0657, 0x065E];
+    test('لا حكم على ألف التنوين إلا الطبيعي عند الوقف في آخر الآية', () {
+      var seats = 0;
+      final wrong = <String>[];
+      for (final r in ayahs) {
+        final text = textOf(r);
+        final spans =
+            TajweedAnnotator.annotate(text, includeNaturalMadd: true);
+        var last = text.length - 1;
+        while (last > 0 &&
+            (isMark(text.codeUnitAt(last)) || text[last] == ' ')) {
+          last--;
+        }
+        for (var i = 1; i < text.length; i++) {
+          if (text[i] != 'ا' && text[i] != 'ى') continue;
+          if (!tanween.contains(text.codeUnitAt(i - 1))) continue;
+          seats++;
+          for (final s in spans) {
+            if (s.start > i || s.end <= i) continue;
+            if (i == last && s.rule == TajweedRule.maddNatural) continue;
+            final ws = text.lastIndexOf(' ', i) + 1;
+            wrong.add('${r[1]}:${r[2]} ${text.substring(ws, i + 1)} '
+                '${s.rule.label}');
+          }
+        }
+      }
+      expect(wrong, isEmpty,
+          reason: '${wrong.length} ألف تنوين لُوِّنت: ${wrong.take(10)}');
+      expect(seats, greaterThan(2000), reason: 'لم تُفحص ألف التنوين أصلًا');
+    });
+
+    test('«رُسُلًا إِلَىٰ» في يونس ٧٤ بلا مدّ قبل الهمزة', () {
+      final text = textOf(ayahs.firstWhere((r) => r[1] == '10' && r[2] == '74'));
+      final at = text.indexOf('رُسُلًا إِلَىٰ');
+      expect(at, greaterThan(0));
+      final word = TajweedAnnotator.annotate(text, includeNaturalMadd: true)
+          .where((s) => s.start >= at && s.start < at + 8);
+      expect(word.map((s) => s.rule), [TajweedRule.raMufakhkhama]);
+    });
+  });
+
   group('تحفة الأطفال — الأبيات ٥٤–٥٦: المدّ في فواتح السور', () {
     // «يَجْمَعُهَا حُرُوفُ كَمْ عَسَلْ نَقَصْ» — هذه الثمانية وحدها مدُّها
     // لازم ستُّ حركات. «وَمَا سِوَي الحَرْفِ الثُّلاَثِي لاَ أَلِفْ *

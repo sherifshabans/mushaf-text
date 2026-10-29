@@ -131,11 +131,11 @@ for. Checked across all 6236 verses:
 | واو أو ياء صغيرة — a small waw or yeh | **مدّ صلة** — **madd silah** | 2213 |
 
 وهذا التنفيذ بلغة Dart يُخرج **مواضع مطابقة تمامًا لتنفيذ Kotlin في الآيات
-الـ٦٢٣٦**، وعددها ٨٥٬٣٨٦ موضعًا، يثبّتها `test/tajweed_parity_test.dart` على
+الـ٦٢٣٦**، وعددها ١١٢٬٥٣٣ موضعًا، يثبّتها `test/tajweed_parity_test.dart` على
 فيكسشر يكتبه طرف Kotlin.
 
 This Dart implementation produces **identical spans to the Kotlin one for all
-6236 verses**, 85,386 of them, which `test/tajweed_parity_test.dart` enforces
+6236 verses**, 112,533 of them, which `test/tajweed_parity_test.dart` enforces
 against a fixture the Kotlin side writes.
 
 ### ما هو — من مراجع مسمّاة · What — from named references
