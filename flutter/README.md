@@ -39,7 +39,7 @@ optional colour-coded **tajweed** mode in which every rule carries its source.
 
 ```yaml
 dependencies:
-  mushaf_text: ^1.4.0
+  mushaf_text: ^1.4.1
 ```
 
 ## الاستعمال · Use
