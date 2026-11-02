@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "com.github.sherifshabans"
-version = "1.4.0"
+version = "1.4.1"
 
 android {
     namespace = "io.github.sherifshabans.mushaf"

@@ -59,7 +59,7 @@ your module's `build.gradle.kts`:
 
 ```kotlin
 dependencies {
-    implementation("com.github.sherifshabans:mushaf-text:1.4.0")
+    implementation("com.github.sherifshabans:mushaf-text:1.4.1")
 }
 ```
 
@@ -67,7 +67,7 @@ Groovy (`build.gradle`):
 
 ```groovy
 repositories { maven { url 'https://jitpack.io' } }
-dependencies { implementation 'com.github.sherifshabans:mushaf-text:1.4.0' }
+dependencies { implementation 'com.github.sherifshabans:mushaf-text:1.4.1' }
 ```
 
 المتطلبات: `minSdk 21` وJetpack Compose. والمكتبة تزيد حجم التطبيق نحو ١٫٧ ميجا
