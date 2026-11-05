@@ -492,62 +492,14 @@ private fun MushafPageBody(
                     )
                 }
         ) {
-            // ٠) إطار الصفحة إن وُجد — نسخة مبسطة من الإطار الزخرفي الحالي في التطبيق
-            // (حبل من الخرز على الجانب الخارجي + ماسات + خطين).
+            // ٠) إطار الصفحة إن وُجد — نسخة من الإطار الزخرفي الحالي في التطبيق
+            // (حبل من الخرز على الجانب الخارجي + ماسات + خطين + ميدالية رقم الصفحة).
             if (decoration.pageFrame) {
-                val frameColors = MushafFrameColors.of(decoration.surahHeaderStyle, colors)
-                val unit = 1.dp.toPx()
-                val inset = 8 * unit
-                val bandThin = 5 * unit
-                val bandOuter = 10 * unit
-                val rightPage = (pageNumber ?: 1) % 2 == 1
-                val leftM = if (rightPage) 4 * unit else 8 * unit
-                val rightM = if (rightPage) 8 * unit else 4 * unit
-                val frameLeft = leftM
-                val frameTop = 3 * unit
-                val frameRight = size.width - rightM
-                val frameBottom = size.height - 14 * unit
-                // outer band
-                drawRoundRect(
-                    color = frameColors.frameBand,
-                    topLeft = Offset(frameLeft, frameTop),
-                    size = Size(frameRight - frameLeft, frameBottom - frameTop),
-                    cornerRadius = CornerRadius(4 * unit),
+                drawOrnatePageFrame(
+                    colors = colors,
+                    style = decoration.surahHeaderStyle,
+                    pageNumber = pageNumber ?: 1,
                 )
-                // inner clear area (even-odd style approximation by over-drawing paper)
-                val bl = if (rightPage) bandThin else bandOuter
-                val br = if (rightPage) bandOuter else bandThin
-                drawRect(
-                    color = colors.paper,
-                    topLeft = Offset(frameLeft + bl, frameTop + bandThin),
-                    size = Size(frameRight - frameLeft - bl - br, frameBottom - frameTop - bandThin * 2),
-                )
-                // outer stroke
-                drawRoundRect(
-                    color = frameColors.frameLine,
-                    topLeft = Offset(frameLeft, frameTop),
-                    size = Size(frameRight - frameLeft, frameBottom - frameTop),
-                    cornerRadius = CornerRadius(4 * unit),
-                    style = Stroke(width = 1.8f * unit),
-                )
-                // rope of beads on the thick outer side
-                val ropeX = if (rightPage) frameRight - bandOuter / 2 else frameLeft + bandOuter / 2
-                var y = frameTop + bandThin + 7 * unit
-                while (y < frameBottom - bandThin - 4 * unit) {
-                    drawCircle(frameColors.frameBand, 2.6f * unit, Offset(ropeX, y))
-                    drawCircle(frameColors.frameLine, 2.6f * unit, Offset(ropeX, y), style = Stroke(0.8f * unit))
-                    drawCircle(frameColors.frameLine, 1f * unit, Offset(ropeX, y))
-                    y += 11 * unit
-                }
-                // simple corner diamonds
-                listOf(
-                    Offset(frameLeft + bl, frameTop + bandThin),
-                    Offset(frameRight - br, frameTop + bandThin),
-                    Offset(frameLeft + bl, frameBottom - bandThin),
-                    Offset(frameRight - br, frameBottom - bandThin),
-                ).forEach { c ->
-                    drawCircle(frameColors.frameLine, 2.4f * unit, c)
-                }
             }
 
             // ١) تظليل الآيات — محصور في شريحة سطره عشان مايزحفش على اللي فوق وتحت.
@@ -819,4 +771,119 @@ private fun placeTokens(
         x -= spaceWidth + extraPerGap
     }
     return placed
+}
+
+/**
+ * Ornamental page frame matching the current MushafFrameDrawable style:
+ * band fill, thin diamonds, rope of beads on the outer side, double rules,
+ * corner marks, and a simple page-number medallion.
+ */
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawOrnatePageFrame(
+    colors: MushafColors,
+    style: SurahHeaderStyle,
+    pageNumber: Int,
+) {
+    val frameColors = MushafFrameColors.of(style, colors)
+    val unit = 1.dp.toPx()
+    val rightPage = pageNumber % 2 == 1
+    val outerMargin = 9f * unit
+    val innerMargin = 3f * unit
+    val topMargin = 2f * unit
+    val bottomMargin = 19f * unit
+    val bandOuter = 12f * unit
+    val bandThin = 6f * unit
+    val leftM = if (rightPage) innerMargin else outerMargin
+    val rightM = if (rightPage) outerMargin else innerMargin
+    val frameLeft = leftM
+    val frameTop = topMargin
+    val frameRight = size.width - rightM
+    val frameBottom = size.height - bottomMargin
+    val bl = if (rightPage) bandThin else bandOuter
+    val br = if (rightPage) bandOuter else bandThin
+    val innerLeft = frameLeft + bl
+    val innerTop = frameTop + bandThin
+    val innerRight = frameRight - br
+    val innerBottom = frameBottom - bandThin
+
+    // band fill (frame minus inner) via EVEN_ODD path
+    val path = androidx.compose.ui.graphics.Path().apply {
+        fillType = androidx.compose.ui.graphics.PathFillType.EvenOdd
+        addRoundRect(
+            androidx.compose.ui.geometry.RoundRect(
+                frameLeft, frameTop, frameRight, frameBottom,
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(4 * unit)
+            )
+        )
+        addRect(androidx.compose.ui.geometry.Rect(innerLeft, innerTop, innerRight, innerBottom))
+    }
+    drawPath(path, frameColors.frameBand)
+
+    // thin diamonds on the thin bands
+    fun diamond(cx: Float, cy: Float, r: Float) {
+        val d = androidx.compose.ui.graphics.Path().apply {
+            moveTo(cx - r, cy)
+            lineTo(cx, cy - r)
+            lineTo(cx + r, cy)
+            lineTo(cx, cy + r)
+            close()
+        }
+        drawPath(d, frameColors.frameLine.copy(alpha = 0.5f))
+    }
+    var x = innerLeft + 6 * unit
+    while (x < innerRight - 3 * unit) {
+        diamond(x, frameTop + bandThin / 2, 1.5f * unit)
+        diamond(x, frameBottom - bandThin / 2, 1.5f * unit)
+        x += 9 * unit
+    }
+    val thinX = if (rightPage) frameLeft + bandThin / 2 else frameRight - bandThin / 2
+    var y = innerTop + 6 * unit
+    while (y < innerBottom - 3 * unit) {
+        diamond(thinX, y, 1.5f * unit)
+        y += 9 * unit
+    }
+
+    // rope of beads on the thick outer side
+    val ropeX = if (rightPage) innerRight + bandOuter / 2 else innerLeft - bandOuter / 2
+    drawLine(
+        color = frameColors.frameLine.copy(alpha = 0.6f),
+        start = Offset(ropeX, innerTop),
+        end = Offset(ropeX, innerBottom),
+        strokeWidth = 0.8f * unit,
+    )
+    y = innerTop + 7 * unit
+    while (y < innerBottom - 4 * unit) {
+        drawCircle(frameColors.frameBand, 2.8f * unit, Offset(ropeX, y))
+        drawCircle(frameColors.frameLine, 2.8f * unit, Offset(ropeX, y), style = Stroke(0.9f * unit))
+        drawCircle(frameColors.frameLine, 1f * unit, Offset(ropeX, y))
+        y += 11 * unit
+    }
+
+    // outer border + inner double rule
+    drawRoundRect(
+        color = frameColors.frameLine,
+        topLeft = Offset(frameLeft, frameTop),
+        size = Size(frameRight - frameLeft, frameBottom - frameTop),
+        cornerRadius = CornerRadius(4 * unit),
+        style = Stroke(2f * unit),
+    )
+    drawRect(
+        color = frameColors.frameLine,
+        topLeft = Offset(innerLeft, innerTop),
+        size = Size(innerRight - innerLeft, innerBottom - innerTop),
+        style = Stroke(1.2f * unit),
+    )
+
+    // corner diamonds
+    listOf(
+        Offset(innerLeft, innerTop),
+        Offset(innerRight, innerTop),
+        Offset(innerLeft, innerBottom),
+        Offset(innerRight, innerBottom),
+    ).forEach { c -> diamond(c.x, c.y, 3.2f * unit) }
+
+    // simple page-number medallion at bottom outer corner
+    val pnX = if (rightPage) frameRight - 30 * unit else frameLeft + 30 * unit
+    val medR = 12f * unit
+    drawCircle(frameColors.frameBand, medR, Offset(pnX, frameBottom))
+    drawCircle(frameColors.frameLine, medR, Offset(pnX, frameBottom), style = Stroke(1.2f * unit))
 }
