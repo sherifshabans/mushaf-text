@@ -283,7 +283,9 @@ private class DrawnBanner(
     val boxHeight: Float,
     val layout: TextLayoutResult,
     val textLeft: Float,
-    val textTop: Float
+    val textTop: Float,
+    val surahNumber: Int,
+    val ayahCount: Int,
 )
 
 private class DrawnText(val layout: TextLayoutResult, val left: Float, val top: Float)
@@ -566,17 +568,14 @@ private fun MushafPageBody(
             // ٢) بانرات أسماء السور.
             drawing.banners.forEach { banner ->
                 if (decoration.surahHeaderStyle != SurahHeaderStyle.PLAIN) {
-                    val frameColors = MushafFrameColors.of(decoration.surahHeaderStyle, colors)
-                    val radius = CornerRadius(if (decoration.surahHeaderStyle == SurahHeaderStyle.MODERN) 20.dp.toPx() else 8.dp.toPx())
-                    val topLeft = Offset(0f, banner.boxTop)
-                    val boxSize = Size(size.width, banner.boxHeight)
-                    drawRoundRect(frameColors.headerFill, topLeft, boxSize, radius)
-                    drawRoundRect(
-                        frameColors.headerBorder, topLeft, boxSize, radius,
-                        style = Stroke(width = 1.dp.toPx())
+                    drawSurahHeader(
+                        banner = banner,
+                        style = decoration.surahHeaderStyle,
+                        colors = colors,
                     )
+                } else {
+                    drawText(banner.layout, topLeft = Offset(banner.textLeft, banner.textTop))
                 }
-                drawText(banner.layout, topLeft = Offset(banner.textLeft, banner.textTop))
             }
 
             // ٣) البسملة، ٤) الكلمات والوردة.
@@ -698,7 +697,9 @@ private fun buildPageDrawing(
                     boxHeight = boxHeight,
                     layout = text,
                     textLeft = (widthPx - text.size.width) / 2f,
-                    textTop = boxTop + (boxHeight - text.size.height) / 2f
+                    textTop = boxTop + (boxHeight - text.size.height) / 2f,
+                    surahNumber = slot.surah,
+                    ayahCount = Quran.surah(slot.surah).ayahCount,
                 )
             }
 
@@ -897,4 +898,111 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawOrnatePageFrame
     val medR = 12f * unit
     drawCircle(frameColors.frameBand, medR, Offset(pnX, frameBottom))
     drawCircle(frameColors.frameLine, medR, Offset(pnX, frameBottom), style = Stroke(1.2f * unit))
+}
+
+/**
+ * Surah header matching the classic/modern styles from SuraHeaderSpan.
+ * Classic: ornamental band + cartouche with name/order + side panels (ayah count).
+ * Modern: teal pill.
+ */
+private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawSurahHeader(
+    banner: DrawnBanner,
+    style: SurahHeaderStyle,
+    colors: MushafColors,
+) {
+    val frameColors = MushafFrameColors.of(style, colors)
+    val w = size.width
+    val h = banner.boxHeight
+    val top = banner.boxTop
+    val s = h / if (style == SurahHeaderStyle.MODERN) 64f else 84f
+    val cx = w / 2f
+    val cy = top + h / 2f
+
+    if (style == SurahHeaderStyle.MODERN) {
+        // simple modern pill
+        drawRoundRect(
+            color = frameColors.headerFill,
+            topLeft = Offset(s, top + s),
+            size = Size(w - 2 * s, h - 2 * s),
+            cornerRadius = CornerRadius(16 * s),
+        )
+        drawRoundRect(
+            color = frameColors.headerBorder,
+            topLeft = Offset(s, top + s),
+            size = Size(w - 2 * s, h - 2 * s),
+            cornerRadius = CornerRadius(16 * s),
+            style = Stroke(1.2f * s),
+        )
+        val pw2 = (w * 0.26f).coerceAtMost(92 * s)
+        drawRoundRect(
+            color = frameColors.headerFill,
+            topLeft = Offset(cx - pw2, top + 11 * s),
+            size = Size(2 * pw2, h - 22 * s),
+            cornerRadius = CornerRadius(h / 2),
+        )
+        drawText(banner.layout, topLeft = Offset(banner.textLeft, banner.textTop))
+        return
+    }
+
+    // CLASSIC
+    // outer band
+    drawRoundRect(
+        color = frameColors.frameBand,
+        topLeft = Offset(s, top + s),
+        size = Size(w - 2 * s, h - 2 * s),
+        cornerRadius = CornerRadius(5 * s),
+    )
+    drawRoundRect(
+        color = frameColors.frameLine,
+        topLeft = Offset(s, top + s),
+        size = Size(w - 2 * s, h - 2 * s),
+        cornerRadius = CornerRadius(5 * s),
+        style = Stroke(1.6f * s),
+    )
+    // inner field
+    drawRoundRect(
+        color = Color(0xFFFFF8E7),
+        topLeft = Offset(8 * s, top + 8 * s),
+        size = Size(w - 16 * s, h - 16 * s),
+        cornerRadius = CornerRadius(3 * s),
+    )
+    // cartouche (simplified rounded rect)
+    val cw = (w * 0.28f).coerceAtMost(118 * s)
+    val ch = 22 * s
+    drawRoundRect(
+        color = frameColors.headerFill,
+        topLeft = Offset(cx - cw, cy - ch),
+        size = Size(2 * cw, 2 * ch),
+        cornerRadius = CornerRadius(8 * s),
+    )
+    drawRoundRect(
+        color = frameColors.frameLine,
+        topLeft = Offset(cx - cw, cy - ch),
+        size = Size(2 * cw, 2 * ch),
+        cornerRadius = CornerRadius(8 * s),
+        style = Stroke(2f * s),
+    )
+    // side panel: ayah count (left in RTL)
+    val pw = ((w - 2 * cw - 48 * s) / 2f).coerceAtLeast(0f)
+    if (pw > 18 * s) {
+        val px = 14 * s
+        drawRoundRect(
+            color = Color.Transparent,
+            topLeft = Offset(px, top + 17 * s),
+            size = Size(pw, h - 34 * s),
+            cornerRadius = CornerRadius(6 * s),
+            style = Stroke(frameColors.frameLine, 1f * s),
+        )
+        // small diamonds top/bottom of panel
+        fun diamond(cx: Float, cy: Float, r: Float) {
+            val d = androidx.compose.ui.graphics.Path().apply {
+                moveTo(cx - r, cy); lineTo(cx, cy - r); lineTo(cx + r, cy); lineTo(cx, cy + r); close()
+            }
+            drawPath(d, frameColors.frameLine)
+        }
+        diamond(px + pw / 2, top + 17 * s, 4 * s)
+        diamond(px + pw / 2, top + h - 17 * s, 4 * s)
+    }
+    // name text (already measured)
+    drawText(banner.layout, topLeft = Offset(banner.textLeft, banner.textTop))
 }
