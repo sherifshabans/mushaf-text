@@ -174,12 +174,16 @@ fun MushafPage(
     // فبدون التثبيت السقف `maxFontSize` بيتضرب في مقياس الجهاز والصفحة تخرج من
     // حافتيها — ومن أندرويد ١٤ التحويل sp→px مش خطّي أصلًا فالحسبة تبوظ.
     val platformDensity = LocalDensity.current
+    // لو فيه إطار، نزود الـ padding عشان النص يفضل جوه الإطار (زي contentPadding في الإطار القديم).
+    val framePad = if (decoration.pageFrame) PaddingValues(
+        start = 28.dp, end = 28.dp, top = 18.dp, bottom = 32.dp
+    ) else PaddingValues(0.dp)
     CompositionLocalProvider(
         LocalDensity provides Density(platformDensity.density, fontScale = 1f)
     ) {
         MushafPageBody(
             ayahs = ayahs,
-            modifier = modifier.padding(contentPadding),
+            modifier = modifier.padding(contentPadding).padding(framePad),
             tajweed = tajweed,
             naturalMadd = naturalMadd,
             colors = colors,
@@ -871,6 +875,13 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawOrnatePageFrame
         topLeft = Offset(innerLeft, innerTop),
         size = Size(innerRight - innerLeft, innerBottom - innerTop),
         style = Stroke(1.2f * unit),
+    )
+    // double rule inside
+    drawRect(
+        color = frameColors.frameLine.copy(alpha = 0.6f),
+        topLeft = Offset(innerLeft + 2.5f * unit, innerTop + 2.5f * unit),
+        size = Size(innerRight - innerLeft - 5f * unit, innerBottom - innerTop - 5f * unit),
+        style = Stroke(0.6f * unit),
     )
 
     // corner diamonds
