@@ -492,23 +492,62 @@ private fun MushafPageBody(
                     )
                 }
         ) {
-            // ٠) إطار الصفحة إن وُجد.
+            // ٠) إطار الصفحة إن وُجد — نسخة مبسطة من الإطار الزخرفي الحالي في التطبيق
+            // (حبل من الخرز على الجانب الخارجي + ماسات + خطين).
             if (decoration.pageFrame) {
                 val frameColors = MushafFrameColors.of(decoration.surahHeaderStyle, colors)
-                val inset = 6.dp.toPx()
-                val stroke = 1.6.dp.toPx()
+                val unit = 1.dp.toPx()
+                val inset = 8 * unit
+                val bandThin = 5 * unit
+                val bandOuter = 10 * unit
+                val rightPage = (pageNumber ?: 1) % 2 == 1
+                val leftM = if (rightPage) 4 * unit else 8 * unit
+                val rightM = if (rightPage) 8 * unit else 4 * unit
+                val frameLeft = leftM
+                val frameTop = 3 * unit
+                val frameRight = size.width - rightM
+                val frameBottom = size.height - 14 * unit
+                // outer band
+                drawRoundRect(
+                    color = frameColors.frameBand,
+                    topLeft = Offset(frameLeft, frameTop),
+                    size = Size(frameRight - frameLeft, frameBottom - frameTop),
+                    cornerRadius = CornerRadius(4 * unit),
+                )
+                // inner clear area (even-odd style approximation by over-drawing paper)
+                val bl = if (rightPage) bandThin else bandOuter
+                val br = if (rightPage) bandOuter else bandThin
                 drawRect(
+                    color = colors.paper,
+                    topLeft = Offset(frameLeft + bl, frameTop + bandThin),
+                    size = Size(frameRight - frameLeft - bl - br, frameBottom - frameTop - bandThin * 2),
+                )
+                // outer stroke
+                drawRoundRect(
                     color = frameColors.frameLine,
-                    topLeft = Offset(inset, inset),
-                    size = Size(size.width - inset * 2, size.height - inset * 2),
-                    style = Stroke(width = stroke),
+                    topLeft = Offset(frameLeft, frameTop),
+                    size = Size(frameRight - frameLeft, frameBottom - frameTop),
+                    cornerRadius = CornerRadius(4 * unit),
+                    style = Stroke(width = 1.8f * unit),
                 )
-                drawRect(
-                    color = frameColors.frameLine.copy(alpha = 0.45f),
-                    topLeft = Offset(inset + 6.dp.toPx(), inset + 6.dp.toPx()),
-                    size = Size(size.width - (inset + 6.dp.toPx()) * 2, size.height - (inset + 6.dp.toPx()) * 2),
-                    style = Stroke(width = stroke * 0.7f),
-                )
+                // rope of beads on the thick outer side
+                val ropeX = if (rightPage) frameRight - bandOuter / 2 else frameLeft + bandOuter / 2
+                var y = frameTop + bandThin + 7 * unit
+                while (y < frameBottom - bandThin - 4 * unit) {
+                    drawCircle(frameColors.frameBand, 2.6f * unit, Offset(ropeX, y))
+                    drawCircle(frameColors.frameLine, 2.6f * unit, Offset(ropeX, y), style = Stroke(0.8f * unit))
+                    drawCircle(frameColors.frameLine, 1f * unit, Offset(ropeX, y))
+                    y += 11 * unit
+                }
+                // simple corner diamonds
+                listOf(
+                    Offset(frameLeft + bl, frameTop + bandThin),
+                    Offset(frameRight - br, frameTop + bandThin),
+                    Offset(frameLeft + bl, frameBottom - bandThin),
+                    Offset(frameRight - br, frameBottom - bandThin),
+                ).forEach { c ->
+                    drawCircle(frameColors.frameLine, 2.4f * unit, c)
+                }
             }
 
             // ١) تظليل الآيات — محصور في شريحة سطره عشان مايزحفش على اللي فوق وتحت.
