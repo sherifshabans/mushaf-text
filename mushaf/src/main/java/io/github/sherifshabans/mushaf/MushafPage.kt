@@ -110,6 +110,7 @@ fun MushafPage(
     tajweed: Boolean = false,
     naturalMadd: Boolean = false,
     colors: MushafColors = MushafColors.Light,
+    decoration: MushafDecoration = MushafDecoration.None,
     selectedAyahIds: Set<Int> = emptySet(),
     highlightedAyahs: Map<Int, Color> = emptyMap(),
     playingAyahIds: Set<Int> = emptySet(),
@@ -131,6 +132,7 @@ fun MushafPage(
         tajweed = tajweed,
         naturalMadd = naturalMadd,
         colors = colors,
+        decoration = decoration,
         selectedAyahIds = selectedAyahIds,
         highlightedAyahs = highlightedAyahs,
         playingAyahIds = playingAyahIds,
@@ -155,6 +157,7 @@ fun MushafPage(
     tajweed: Boolean = false,
     naturalMadd: Boolean = false,
     colors: MushafColors = MushafColors.Light,
+    decoration: MushafDecoration = MushafDecoration.None,
     selectedAyahIds: Set<Int> = emptySet(),
     highlightedAyahs: Map<Int, Color> = emptyMap(),
     playingAyahIds: Set<Int> = emptySet(),
@@ -180,6 +183,7 @@ fun MushafPage(
             tajweed = tajweed,
             naturalMadd = naturalMadd,
             colors = colors,
+            decoration = decoration,
             selectedAyahIds = selectedAyahIds,
             highlightedAyahs = highlightedAyahs,
             playingAyahIds = playingAyahIds,
@@ -399,6 +403,7 @@ private fun MushafPageBody(
     tajweed: Boolean,
     naturalMadd: Boolean,
     colors: MushafColors,
+    decoration: MushafDecoration,
     selectedAyahIds: Set<Int>,
     highlightedAyahs: Map<Int, Color>,
     playingAyahIds: Set<Int>,
@@ -487,6 +492,25 @@ private fun MushafPageBody(
                     )
                 }
         ) {
+            // ٠) إطار الصفحة إن وُجد.
+            if (decoration.pageFrame) {
+                val frameColors = MushafFrameColors.of(decoration.surahHeaderStyle, colors)
+                val inset = 6.dp.toPx()
+                val stroke = 1.6.dp.toPx()
+                drawRect(
+                    color = frameColors.frameLine,
+                    topLeft = Offset(inset, inset),
+                    size = Size(size.width - inset * 2, size.height - inset * 2),
+                    style = Stroke(width = stroke),
+                )
+                drawRect(
+                    color = frameColors.frameLine.copy(alpha = 0.45f),
+                    topLeft = Offset(inset + 6.dp.toPx(), inset + 6.dp.toPx()),
+                    size = Size(size.width - (inset + 6.dp.toPx()) * 2, size.height - (inset + 6.dp.toPx()) * 2),
+                    style = Stroke(width = stroke * 0.7f),
+                )
+            }
+
             // ١) تظليل الآيات — محصور في شريحة سطره عشان مايزحفش على اللي فوق وتحت.
             drawing.verses.forEach { line ->
                 var runStart: PlacedToken? = null
@@ -546,14 +570,17 @@ private fun MushafPageBody(
 
             // ٢) بانرات أسماء السور.
             drawing.banners.forEach { banner ->
-                val radius = CornerRadius(8.dp.toPx())
-                val topLeft = Offset(0f, banner.boxTop)
-                val boxSize = Size(size.width, banner.boxHeight)
-                drawRoundRect(colors.bannerFill, topLeft, boxSize, radius)
-                drawRoundRect(
-                    colors.bannerBorder, topLeft, boxSize, radius,
-                    style = Stroke(width = 1.dp.toPx())
-                )
+                if (decoration.surahHeaderStyle != SurahHeaderStyle.PLAIN) {
+                    val frameColors = MushafFrameColors.of(decoration.surahHeaderStyle, colors)
+                    val radius = CornerRadius(if (decoration.surahHeaderStyle == SurahHeaderStyle.MODERN) 20.dp.toPx() else 8.dp.toPx())
+                    val topLeft = Offset(0f, banner.boxTop)
+                    val boxSize = Size(size.width, banner.boxHeight)
+                    drawRoundRect(frameColors.headerFill, topLeft, boxSize, radius)
+                    drawRoundRect(
+                        frameColors.headerBorder, topLeft, boxSize, radius,
+                        style = Stroke(width = 1.dp.toPx())
+                    )
+                }
                 drawText(banner.layout, topLeft = Offset(banner.textLeft, banner.textTop))
             }
 
