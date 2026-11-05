@@ -278,7 +278,7 @@ private class DrawnVerseLine(
     val tokens: List<PlacedToken>
 )
 
-private class DrawnBanner(
+internal class DrawnBanner(
     val boxTop: Float,
     val boxHeight: Float,
     val layout: TextLayoutResult,

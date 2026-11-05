@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.drawText
 import androidx.compose.ui.unit.dp
 import kotlin.math.cos
 import kotlin.math.sin
@@ -199,7 +200,7 @@ internal fun DrawScope.drawClassicSurahHeader(
             topLeft = Offset(px, top + 17 * s),
             size = Size(pw, h - 34 * s),
             cornerRadius = CornerRadius(6 * s),
-            style = Stroke(frameColors.frameLine, 1f * s),
+            style = Stroke(width = 1f * s),
         )
         fun diamond(cx: Float, cy: Float, r: Float) {
             val d = Path().apply {
