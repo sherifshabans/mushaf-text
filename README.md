@@ -1,18 +1,21 @@
-# mushaf-text
+# mushaf-text (customizable fork)
 
-[![](https://jitpack.io/v/sherifshabans/mushaf-text.svg)](https://jitpack.io/#sherifshabans/mushaf-text)
-[![pub package](https://img.shields.io/pub/v/mushaf_text.svg)](https://pub.dev/packages/mushaf_text)
+[![](https://jitpack.io/v/MahmoudMabrok/mushaf-text-customizable.svg)](https://jitpack.io/#MahmoudMabrok/mushaf-text-customizable)
+
+**Fork** of [sherifshabans/mushaf-text](https://github.com/sherifshabans/mushaf-text) with added
+`MushafDecoration` support for ornamental page frames and configurable surah-name banners
+(Classic / Modern / Plain), matching the styles used in the customized reader of QuranyApp.
 
 مصحف المدينة **كنصّ** (لا صور) في Jetpack Compose — الصفحة مطابقة للمطبوع سطرًا
 بسطر، بخط مجمّع الملك فهد، ومعه وضع **مصحف التجويد** بالألوان، وكل حكم يحمل مرجعه.
-وفي `flutter/` نفس المحرّك لـFlutter، منشورًا على pub.dev باسم
-[`mushaf_text`](https://pub.dev/packages/mushaf_text).
+**هذه النسخة المخصصة** تضيف دعمًا لإطار الصفحة الزخرفي وأنماط إطار اسم السورة
+(كلاسيك / حديث / عادي) عبر `MushafDecoration`.
 
 The Madinah Mushaf rendered as **text** in Jetpack Compose — every page laid out
 line-for-line like the printed copy, in the King Fahd Complex font, with an
 optional colour-coded **tajweed** mode in which every rule carries its source.
-`flutter/` holds the same renderer for Flutter, published on pub.dev as
-[`mushaf_text`](https://pub.dev/packages/mushaf_text).
+**This customizable fork** adds ornamental page frames and configurable surah
+header styles (Classic / Modern / Plain) via `MushafDecoration`.
 
 | عادي · Plain | تجويد · Tajweed | ليلي · Night |
 |---|---|---|
@@ -153,6 +156,34 @@ val colors = MushafColors.Light.copy(
 
 `focusRule` and `focusIndex` frame one occurrence of a rule on the page — what a
 "rules on this page" screen needs to walk through them.
+
+### تزيين الصفحة · Page decoration (MushafDecoration)
+
+أضف إطارًا زخرفيًا للصفحة وحدد شكل إطار اسم السورة (كلاسيك / حديث / عادي) بنفس الأنماط المستخدمة في الوضع المخصص في QuranyApp.
+
+```kotlin
+val decoration = MushafDecoration(
+    pageFrame = true,                          // إطار مزدوج حول الصفحة
+    surahHeaderStyle = SurahHeaderStyle.CLASSIC, // CLASSIC | MODERN | PLAIN
+    ayahFrame = true                           // إطار خفيف حول الآيات المظللة
+)
+
+MushafPage(
+    page = 2,
+    colors = MushafColors.Light,
+    decoration = decoration
+)
+
+// أو عبر MushafPager
+MushafPager(
+    decoration = MushafDecoration.Classic,   // أو .Modern
+    colors = MushafColors.Light
+)
+```
+
+- `SurahHeaderStyle.CLASSIC` — إطار ذهبي/أخضر كلاسيكي (مثل المصحف المطبوع).
+- `SurahHeaderStyle.MODERN` — حبة تيل حديثة.
+- `SurahHeaderStyle.PLAIN` — اسم السورة كنص فقط بدون إطار زخرفي.
 
 ### تظليل الآيات · Highlighting ayahs
 
