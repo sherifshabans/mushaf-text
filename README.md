@@ -181,6 +181,10 @@ MushafPager(
 )
 ```
 
+| Classic | Modern | Plain |
+|---|---|---|
+| ![](docs/styles/classic.png) | ![](docs/styles/modern.png) | ![](docs/styles/plain.png) |
+
 - `SurahHeaderStyle.CLASSIC` — إطار ذهبي/أخضر كلاسيكي (مثل المصحف المطبوع).
 - `SurahHeaderStyle.MODERN` — حبة تيل حديثة.
 - `SurahHeaderStyle.PLAIN` — اسم السورة كنص فقط بدون إطار زخرفي.
