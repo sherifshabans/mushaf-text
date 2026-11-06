@@ -375,31 +375,17 @@ internal fun DrawScope.drawClassicSurahHeader(
     drawCircle(frameColors.headerBorder, 3 * s, Offset(cx - cw, cy))
     drawCircle(frameColors.headerBorder, 3 * s, Offset(cx + cw, cy))
 
-    // ٤) الاسم + «ترتيبها N» جوّه الكارتوث
-    val order = banner.orderLayout
-    if (order != null) {
-        val blockH = banner.layout.size.height + order.size.height + 2 * s
-        val nameTop = cy - blockH / 2f
-        drawText(
-            banner.layout,
-            topLeft = Offset(cx - banner.layout.size.width / 2f, nameTop),
-        )
-        drawText(
-            order,
-            topLeft = Offset(cx - order.size.width / 2f, nameTop + banner.layout.size.height + 2 * s),
-        )
-    } else {
-        drawText(
-            banner.layout,
-            topLeft = Offset(
-                cx - banner.layout.size.width / 2f,
-                cy - banner.layout.size.height / 2f,
-            ),
-        )
-    }
+    // ٤) الاسم لوحده جوّه الكارتوث
+    drawText(
+        banner.layout,
+        topLeft = Offset(
+            cx - banner.layout.size.width / 2f,
+            cy - banner.layout.size.height / 2f,
+        ),
+    )
 
     // ٥) لوحتان على الجانبين (زي القارئ الكلاسيكي):
-    // شمال = آياتها + العدد، يمين = نزولها + مكية/مدنية.
+    // شمال = آياتها + العدد، يمين = مكية/مدنية + رقم السورة.
     val panelHalf = (w - 2 * cw - 48 * s) / 2f
     val panelTop = top + 17 * s
     val panelBottom = top + h - 17 * s
@@ -442,7 +428,7 @@ internal fun DrawScope.drawClassicSurahHeader(
         drawLine(rule, Offset(cx + cw, cy), Offset(rightPanel, cy), 1f * s)
 
         panel(leftPanel, banner.countCaptionLayout, banner.countLayout)
-        panel(rightPanel, banner.revelationCaptionLayout, banner.revelationLayout)
+        panel(rightPanel, banner.revelationLayout, banner.orderLayout)
     }
 }
 
@@ -480,7 +466,7 @@ internal fun DrawScope.drawModernSurahHeader(
                 drawText(it, topLeft = Offset(cx - it.size.width / 2f, y))
             }
         }
-        stack(w - side / 2f, banner.revelationCaptionLayout, banner.revelationLayout)
+        stack(w - side / 2f, banner.revelationLayout, banner.orderLayout)
         stack(side / 2f, banner.countCaptionLayout, banner.countLayout)
     }
 }

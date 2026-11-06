@@ -157,9 +157,20 @@ MushafPager(
 | ![](docs/styles/classic.png) | ![](docs/styles/modern.png) | ![](docs/styles/plain.png) |
 
 **`SurahHeaderStyle.CLASSIC`** — a gold/teal cartouche drawn the way the printed mushaf does it:
-a band the width of the text column, the surah name in a curved cartouche at its centre, and two
-side panels joined to it by short rules. The **left panel** holds the ayah count with its noun
-(`٢٨٦ آية`, `٧ آيات`, `آيتان`), the **right panel** holds the surah number.
+a band the width of the text column, the surah name alone in a curved cartouche at its centre, and
+two side panels joined to it by short rules. The **left panel** holds the ayah count with its noun
+(`٢٨٦ آية`, `٧ آيات`, `آيتان`), and the **right panel** holds the revelation (مكية / مدنية) with
+the surah number beneath it.
+
+Both panels can be overridden per surah if your app already has its own metadata:
+
+```kotlin
+MushafDecoration.Classic.copy(
+    surahHeaderOverrides = mapOf(
+        2 to SurahHeaderOverride(revelationType = RevelationType.MEDINAN, ayahCount = 286)
+    )
+)
+```
 
 **`SurahHeaderStyle.MODERN`** — a modern teal pill the width of the text column.
 
@@ -479,8 +490,19 @@ MushafPager(
 | ![](docs/styles/classic.png) | ![](docs/styles/modern.png) | ![](docs/styles/plain.png) |
 
 **`SurahHeaderStyle.CLASSIC`** — كارتوث ذهبي/أخضر زي المصحف المطبوع: شريط بعرض عمود النص، واسم
-السورة في كارتوث منحنيات في وسطه، ولوحتان على الجانبين متصلتان به بخطوط قصيرة. **لوحة الشمال**
-فيها عدد الآيات بكلمته (`٢٨٦ آية`، `٧ آيات`، `آيتان`)، و**لوحة اليمين** فيها رقم السورة.
+السورة لوحده في كارتوث منحنيات في وسطه، ولوحتان على الجانبين متصلتان به بخطوط قصيرة. **لوحة
+الشمال** فيها عدد الآيات بكلمته (`٢٨٦ آية`، `٧ آيات`، `آيتان`)، و**لوحة اليمين** فيها نوع النزول
+(مكية / مدنية) وتحته رقم السورة.
+
+واللوحتان ممكن تتغيّرا لسورة بعينها لو التطبيق عنده بياناته:
+
+```kotlin
+MushafDecoration.Classic.copy(
+    surahHeaderOverrides = mapOf(
+        2 to SurahHeaderOverride(revelationType = RevelationType.MEDINAN, ayahCount = 286)
+    )
+)
+```
 
 **`SurahHeaderStyle.MODERN`** — حبة تيل حديثة بعرض عمود النص.
 
