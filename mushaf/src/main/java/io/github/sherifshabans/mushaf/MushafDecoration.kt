@@ -17,6 +17,20 @@ enum class SurahHeaderStyle {
     PLAIN
 }
 
+
+/**
+ * Optional per-surah overrides for the header cartouche panels.
+ * Null fields keep the bundled [Surah] table values.
+ * Use this when the host app already has Room/json metadata and wants to
+ * force a specific revelation type or ayah count without forking the table.
+ */
+@Immutable
+data class SurahHeaderOverride(
+    val revelationType: RevelationType? = null,
+    val ayahCount: Int? = null,
+    val nameArabic: String? = null,
+)
+
 /**
  * Decorative options for a mushaf page.
  *
@@ -26,12 +40,18 @@ enum class SurahHeaderStyle {
  * @param surahHeaderStyle style of the surah name banner.
  * @param ayahFrame draw a light frame around highlighted / selected / playing
  *   ayahs. The frame is padded off the glyphs and joins across a multi-line ayah.
+ * @param surahHeaderOverrides optional per-surah revelation / count / name overrides.
  */
 @Immutable
 data class MushafDecoration(
     val pageFrame: Boolean = false,
     val surahHeaderStyle: SurahHeaderStyle = SurahHeaderStyle.CLASSIC,
     val ayahFrame: Boolean = false,
+    /**
+     * Per-surah header overrides (1‥114). Missing keys use the bundled table.
+     * Typical use: pass revelation types from the host app's database.
+     */
+    val surahHeaderOverrides: Map<Int, SurahHeaderOverride> = emptyMap(),
 ) {
     companion object {
         val None = MushafDecoration()

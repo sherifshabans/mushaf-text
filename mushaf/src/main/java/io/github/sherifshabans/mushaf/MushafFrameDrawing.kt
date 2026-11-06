@@ -375,23 +375,36 @@ internal fun DrawScope.drawClassicSurahHeader(
     drawCircle(frameColors.headerBorder, 3 * s, Offset(cx - cw, cy))
     drawCircle(frameColors.headerBorder, 3 * s, Offset(cx + cw, cy))
 
-    // ٤) الاسم جوّه الكارتوث
-    drawText(
-        banner.layout,
-        topLeft = Offset(
-            cx - banner.layout.size.width / 2f,
-            cy - banner.layout.size.height / 2f,
-        ),
-    )
+    // ٤) الاسم + «ترتيبها N» جوّه الكارتوث
+    val order = banner.orderLayout
+    if (order != null) {
+        val blockH = banner.layout.size.height + order.size.height + 2 * s
+        val nameTop = cy - blockH / 2f
+        drawText(
+            banner.layout,
+            topLeft = Offset(cx - banner.layout.size.width / 2f, nameTop),
+        )
+        drawText(
+            order,
+            topLeft = Offset(cx - order.size.width / 2f, nameTop + banner.layout.size.height + 2 * s),
+        )
+    } else {
+        drawText(
+            banner.layout,
+            topLeft = Offset(
+                cx - banner.layout.size.width / 2f,
+                cy - banner.layout.size.height / 2f,
+            ),
+        )
+    }
 
-    // ٥) لوحتان على الجانبين: عدد الآيات شمالًا («١٧٦ آية») ورقم السورة يمينًا —
-    // مكان لوحة النزول في الأصل. الوصلة بين اللوحة والكارتوث قصيرة (١٠s)، فالشريط
-    // بيقرأ كقطعة واحدة متواصلة.
+    // ٥) لوحتان على الجانبين (زي القارئ الكلاسيكي):
+    // شمال = آياتها + العدد، يمين = نزولها + مكية/مدنية.
     val panelHalf = (w - 2 * cw - 48 * s) / 2f
     val panelTop = top + 17 * s
     val panelBottom = top + h - 17 * s
     if (panelHalf > 18 * s) {
-        fun panel(left: Float, value: TextLayoutResult?) {
+        fun panel(left: Float, caption: TextLayoutResult?, value: TextLayoutResult?) {
             drawRoundRect(
                 color = frameColors.frameBand,
                 topLeft = Offset(left, panelTop),
@@ -407,14 +420,18 @@ internal fun DrawScope.drawClassicSurahHeader(
             )
             diamond(left + panelHalf / 2, panelTop, 4 * s, frameColors.frameLine)
             diamond(left + panelHalf / 2, panelBottom, 4 * s, frameColors.frameLine)
+            val midX = left + panelHalf / 2
+            val gap = 3 * s
+            val capH = caption?.size?.height?.toFloat() ?: 0f
+            val valH = value?.size?.height?.toFloat() ?: 0f
+            val block = capH + (if (caption != null && value != null) gap else 0f) + valH
+            var y = (panelTop + panelBottom) / 2f - block / 2f
+            caption?.let {
+                drawText(it, topLeft = Offset(midX - it.size.width / 2f, y))
+                y += it.size.height + gap
+            }
             value?.let {
-                drawText(
-                    it,
-                    topLeft = Offset(
-                        left + panelHalf / 2 - it.size.width / 2f,
-                        (panelTop + panelBottom) / 2f - it.size.height / 2f,
-                    ),
-                )
+                drawText(it, topLeft = Offset(midX - it.size.width / 2f, y))
             }
         }
 
@@ -424,8 +441,8 @@ internal fun DrawScope.drawClassicSurahHeader(
         drawLine(rule, Offset(leftPanel + panelHalf, cy), Offset(cx - cw, cy), 1f * s)
         drawLine(rule, Offset(cx + cw, cy), Offset(rightPanel, cy), 1f * s)
 
-        panel(leftPanel, banner.countLayout)
-        panel(rightPanel, banner.orderLayout)
+        panel(leftPanel, banner.countCaptionLayout, banner.countLayout)
+        panel(rightPanel, banner.revelationCaptionLayout, banner.revelationLayout)
     }
 }
 
@@ -436,12 +453,34 @@ internal fun DrawScope.drawModernSurahHeader(
     frameColors: MushafFrameColors = MushafFrameColors.of(SurahHeaderStyle.MODERN, colors),
 ) {
     val w = banner.width
-    val radius = CornerRadius(banner.boxHeight / 2f)
+    val h = banner.boxHeight
+    val top = banner.boxTop
+    val radius = CornerRadius(h / 2f)
     drawRoundRect(
         color = frameColors.headerFill,
-        topLeft = Offset(0f, banner.boxTop),
-        size = Size(w, banner.boxHeight),
+        topLeft = Offset(0f, top),
+        size = Size(w, h),
         cornerRadius = radius,
     )
     drawText(banner.layout, topLeft = Offset(banner.textLeft, banner.textTop))
+
+    // Side meta when there is room: revelation on the right, ayah count on the left.
+    val side = w * 0.22f
+    if (side > 40f) {
+        fun stack(cx: Float, caption: TextLayoutResult?, value: TextLayoutResult?) {
+            val gap = 2f
+            val block = (caption?.size?.height ?: 0) + (if (caption != null && value != null) gap else 0f) +
+                (value?.size?.height ?: 0)
+            var y = top + (h - block) / 2f
+            caption?.let {
+                drawText(it, topLeft = Offset(cx - it.size.width / 2f, y))
+                y += it.size.height + gap
+            }
+            value?.let {
+                drawText(it, topLeft = Offset(cx - it.size.width / 2f, y))
+            }
+        }
+        stack(w - side / 2f, banner.revelationCaptionLayout, banner.revelationLayout)
+        stack(side / 2f, banner.countCaptionLayout, banner.countLayout)
+    }
 }

@@ -24,14 +24,37 @@ data class Ayah(
     val text: String
 )
 
-/** A surah with its Arabic and transliterated names and its page range. */
+/**
+ * Whether a surah was revealed in Mecca or Medina.
+ * Values match QuranyApp's `quran.json` / Room `SuraItem.revelationType`
+ * (`"Meccan"` / `"Medinan"`).
+ */
+enum class RevelationType {
+    MECCAN,
+    MEDINAN;
+
+    /** Arabic label for the surah header panel: مكية / مدنية. */
+    val labelArabic: String
+        get() = when (this) {
+            MECCAN -> "مكية"
+            MEDINAN -> "مدنية"
+        }
+
+    companion object {
+        fun fromAppString(value: String?): RevelationType =
+            if (value.equals("Medinan", ignoreCase = true)) MEDINAN else MECCAN
+    }
+}
+
+/** A surah with its Arabic and transliterated names, page range and revelation type. */
 data class Surah(
     val number: Int,
     val nameArabic: String,
     val nameEnglish: String,
     val ayahCount: Int,
     val startPage: Int,
-    val endPage: Int
+    val endPage: Int,
+    val revelationType: RevelationType,
 )
 
 /**

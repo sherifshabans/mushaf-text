@@ -395,9 +395,16 @@ internal class DrawnBanner(
     val textTop: Float,
     val surahNumber: Int,
     val ayahCount: Int,
-    /** رقم السورة بأرقام عربية، بيتـرسـم تحت الاسم جوّه الكارتوث. */
-    val orderLayout: TextLayoutResult,
-    /** عدد آيات السورة بأرقام عربية، مقيس للوحة العدد في الترويسة الكلاسيكية. */
+    val revelationType: RevelationType,
+    /** «ترتيبها N» تحت الاسم جوّه الكارتوث (زي القارئ الكلاسيكي). */
+    val orderLayout: TextLayoutResult?,
+    /** تسمية لوحة النزول: نزولها. */
+    val revelationCaptionLayout: TextLayoutResult?,
+    /** قيمة لوحة النزول: مكية / مدنية. */
+    val revelationLayout: TextLayoutResult?,
+    /** تسمية لوحة العدد: آياتها. */
+    val countCaptionLayout: TextLayoutResult?,
+    /** قيمة لوحة العدد (مثل «١٧٦ آية»). */
     val countLayout: TextLayoutResult?,
 )
 
@@ -897,43 +904,84 @@ private fun buildPageDrawing(
                     return layout
                 }
 
+                val override = decoration.surahHeaderOverrides[slot.surah]
+                val revelation = override?.revelationType ?: surah.revelationType
+                val ayahCount = override?.ayahCount ?: surah.ayahCount
+                val displayName = override?.nameArabic?.let { raw ->
+                    val clean = raw.trim()
+                    if (clean.startsWith("سورة") || clean.startsWith("سُورَةُ")) clean
+                    else "سُورَةُ $clean"
+                } ?: ("سُورَةُ " + surah.nameArabic)
+
+                // لوحة الشمال: آياتها + العدد. لوحة اليمين: نزولها + مكية/مدنية.
                 val nameMaxWidth = surahNameMaxWidth(widthPx, boxHeight)
-                val text = fitted(
-                    "سُورَةُ " + surah.nameArabic,
+                val nameText = fitted(
+                    displayName,
                     { mushafTextStyle(it, bannerInk) },
                     layout.fontSize * 0.9f,
                     nameMaxWidth,
                     surahNameMaxHeight(widthPx, boxHeight),
                 )
 
-                // لوحة الشمال: عدد الآيات بكلمته. لوحة اليمين: رقم السورة — مكان
-                // لوحة النزول في الأصل.
                 val (panelWidth, panelHeight) = surahCountPanelSize(widthPx, boxHeight)
+                // Classic panels sit on the gold band → use frameLine.
+                // Modern meta is drawn on the teal pill → use headerText.
+                val panelInk = when (decoration.surahHeaderStyle) {
+                    SurahHeaderStyle.MODERN -> frameColors.headerText
+                    else -> frameColors.frameLine
+                }
+                val captionStyle = { size: Float -> labelTextStyle(size, panelInk.copy(alpha = 0.75f)) }
+                val valueStyle = { size: Float -> labelTextStyle(size, panelInk) }
+                val countCaptionLayout = fitted(
+                    "آياتها",
+                    captionStyle,
+                    layout.fontSize * 0.32f,
+                    panelWidth * 0.85f,
+                    panelHeight * 0.28f,
+                )
                 val countLayout = fitted(
-                    ayahCountLabel(surah.ayahCount),
-                    { labelTextStyle(it, frameColors.frameLine) },
-                    layout.fontSize * 0.5f,
-                    panelWidth * 0.8f,
-                    panelHeight * 0.72f,
+                    ayahCountLabel(ayahCount),
+                    valueStyle,
+                    layout.fontSize * 0.42f,
+                    panelWidth * 0.85f,
+                    panelHeight * 0.42f,
+                )
+                val revelationCaptionLayout = fitted(
+                    "نزولها",
+                    captionStyle,
+                    layout.fontSize * 0.32f,
+                    panelWidth * 0.85f,
+                    panelHeight * 0.28f,
+                )
+                val revelationLayout = fitted(
+                    revelation.labelArabic,
+                    valueStyle,
+                    layout.fontSize * 0.45f,
+                    panelWidth * 0.85f,
+                    panelHeight * 0.42f,
                 )
                 val orderLayout = fitted(
-                    toArabicDigits(slot.surah),
-                    { labelTextStyle(it, frameColors.frameLine) },
-                    layout.fontSize * 0.5f,
-                    panelWidth * 0.5f,
-                    panelHeight * 0.72f,
+                    "ترتيبها " + toArabicDigits(slot.surah),
+                    { labelTextStyle(it, frameColors.headerText.copy(alpha = 0.9f)) },
+                    layout.fontSize * 0.28f,
+                    nameMaxWidth,
+                    boxHeight * 0.22f,
                 )
 
                 banners += DrawnBanner(
                     boxTop = boxTop,
                     boxHeight = boxHeight,
                     width = widthPx,
-                    layout = text,
-                    textLeft = (widthPx - text.size.width) / 2f,
-                    textTop = boxTop + (boxHeight - text.size.height) / 2f,
+                    layout = nameText,
+                    textLeft = (widthPx - nameText.size.width) / 2f,
+                    textTop = boxTop + (boxHeight - nameText.size.height) / 2f - boxHeight * 0.06f,
                     surahNumber = slot.surah,
-                    ayahCount = surah.ayahCount,
+                    ayahCount = ayahCount,
+                    revelationType = revelation,
                     orderLayout = orderLayout,
+                    revelationCaptionLayout = revelationCaptionLayout,
+                    revelationLayout = revelationLayout,
+                    countCaptionLayout = countCaptionLayout,
                     countLayout = countLayout,
                 )
             }
