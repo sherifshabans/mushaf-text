@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import org.junit.Rule
 import org.junit.Test
@@ -51,7 +52,10 @@ class MushafDecorationHarness {
                 Shot(page, "none", MushafDecoration.None),
                 Shot(page, "classic", MushafDecoration.Classic),
                 Shot(page, "modern", MushafDecoration.Modern),
-                Shot(page, "plain", MushafDecoration.None.copy(surahHeaderStyle = SurahHeaderStyle.PLAIN)),
+                Shot(
+                    page, "plain",
+                    MushafDecoration(pageFrame = true, surahHeaderStyle = SurahHeaderStyle.PLAIN),
+                ),
                 Shot(page, "classic_hl", MushafDecoration.Classic, highlighted = true),
                 Shot(page, "classic_dark", MushafDecoration.Classic, highlighted = true, dark = true),
             )
@@ -62,15 +66,16 @@ class MushafDecorationHarness {
         rule.setContent {
             val s = shown.value
             val colors = if (s.dark) MushafColors.Dark else MushafColors.Light
+            val first = TestData.ayahs.first { it.page == s.page }
             Box(Modifier.size(411.dp, 830.dp).background(colors.paper)) {
                 MushafPage(
                     ayahs = TestData.ayahs.filter { it.page == s.page },
                     modifier = Modifier.size(411.dp, 830.dp),
                     colors = colors,
                     decoration = s.decoration,
-                    selectedAyahIds = if (s.highlighted) {
-                        setOf(TestData.ayahs.first { it.page == s.page }.id)
-                    } else emptySet(),
+                    highlightedAyahs = if (s.highlighted) {
+                        mapOf(first.id to Color(0xFFFFC107))
+                    } else emptyMap(),
                 )
             }
         }

@@ -185,13 +185,37 @@ class MushafDecorationRenderTest {
         assertEquals(without.width, with.width)
         assertEquals(without.height, with.height)
 
-        val a = IntArray(without.width * without.height)
-        val b = IntArray(with.width * with.height)
-        without.getPixels(a, 0, without.width, 0, 0, without.width, without.height)
-        with.getPixels(b, 0, with.width, 0, 0, with.width, with.height)
+        assertTrue("ayahFrame changed nothing — it is still a no-op", diff(without, with) > 200)
+    }
 
+    @Test
+    fun everyDecorationStyleIsApplied() {
+        // كل مقارنة بتغيّر **حاجة واحدة** بس، عشان الفشل يقول إيه اللي مابيرسمش.
+        fun decorated(style: SurahHeaderStyle, frame: Boolean = true) =
+            MushafDecoration(pageFrame = frame, surahHeaderStyle = style, ayahFrame = false)
+
+        val noFrame = shot(decorated(SurahHeaderStyle.CLASSIC, frame = false))
+        val framed = shot(decorated(SurahHeaderStyle.CLASSIC))
+        val plainHeader = shot(decorated(SurahHeaderStyle.PLAIN))
+        val classic = shot(decorated(SurahHeaderStyle.CLASSIC))
+        val modern = shot(decorated(SurahHeaderStyle.MODERN))
+
+        assertTrue("pageFrame drew nothing", diff(noFrame, framed) > 500)
+        assertTrue("CLASSIC header drew nothing", diff(plainHeader, classic) > 500)
+        assertTrue("MODERN header drew nothing", diff(plainHeader, modern) > 500)
+        assertTrue("CLASSIC and MODERN must not look alike", diff(classic, modern) > 500)
+    }
+
+    /** عدد البكسلات المختلفة بين صورتين بنفس المقاس. */
+    private fun diff(a: Bitmap, b: Bitmap): Int {
+        assertEquals(a.width, b.width)
+        assertEquals(a.height, b.height)
+        val pa = IntArray(a.width * a.height)
+        val pb = IntArray(b.width * b.height)
+        a.getPixels(pa, 0, a.width, 0, 0, a.width, a.height)
+        b.getPixels(pb, 0, b.width, 0, 0, b.width, b.height)
         var changed = 0
-        for (i in a.indices) if (a[i] != b[i]) changed++
-        assertTrue("ayahFrame changed nothing — it is still a no-op", changed > 200)
+        for (i in pa.indices) if (pa[i] != pb[i]) changed++
+        return changed
     }
 }
