@@ -218,7 +218,7 @@ QuranText(ayahs = Quran.ayahsOfSurah(context, 112), onAyahClick = { })
 ### The data
 
 ```kotlin
-Quran.surahs                         // 114 surahs: Arabic/English name, ayah count, pages
+Quran.surahs                         // 114 surahs: names, ayah count, pages, revelation type
 Quran.page(context, 1)               // the ayahs on a page
 Quran.ayahsOfSurah(context, 18)
 Quran.pageOf(context, 18, 10)        // which page an ayah is on
@@ -550,7 +550,7 @@ QuranText(ayahs = Quran.ayahsOfSurah(context, 112), onAyahClick = { })
 ### البيانات
 
 ```kotlin
-Quran.surahs                         // ١١٤ سورة: الاسم عربي/إنجليزي، عدد الآيات، الصفحات
+Quran.surahs                         // ١١٤ سورة: الاسم، عدد الآيات، الصفحات، نوع النزول
 Quran.page(context, 1)               // آيات صفحة
 Quran.ayahsOfSurah(context, 18)
 Quran.pageOf(context, 18, 10)        // صفحة آية
