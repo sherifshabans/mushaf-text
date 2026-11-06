@@ -27,20 +27,16 @@ import kotlin.math.sin
  * بيتخطّط جوّه `content*` بتاعته — فما ينفعش يفترقوا تاني.
  */
 
-/** مسافة الإطار عن حافة الـCanvas. */
-private const val OUTER_MARGIN = 9f
-private const val INNER_MARGIN = 3f
-private const val TOP_MARGIN = 2f
-
-/** أسفل الصفحة أوسع عشان ميدالية رقم الصفحة. */
-private const val BOTTOM_MARGIN = 19f
+/** Defaults when callers do not pass [MushafDecoration] margins. */
+private const val DEFAULT_OUTER_MARGIN = 5f
+private const val DEFAULT_INNER_MARGIN = 2f
+private const val DEFAULT_TOP_MARGIN = 1.5f
+private const val DEFAULT_BOTTOM_MARGIN = 14f
+private const val DEFAULT_TEXT_GAP = 8f
 
 /** عرض شريط الإطار: عريض على الجانب الخارجي (وحبل الخرز)، رفيع على الداخلي. */
 private const val BAND_OUTER = 12f
 private const val BAND_THIN = 6f
-
-/** فراغ أمان بين أعمق حبر في الإطار وأول حرف في النص (textGap في الأصل). */
-private const val TEXT_GAP = 5f
 
 /**
  * أبعاد إطار الصفحة بالبكسل، وحدود منطقة النص اللي جوّاه.
@@ -57,16 +53,17 @@ internal class MushafFrameGeometry(
     val frameBottom: Float,
     val bandLeft: Float,
     val bandRight: Float,
+    textGap: Float = DEFAULT_TEXT_GAP,
 ) {
     val innerLeft: Float = frameLeft + bandLeft
     val innerTop: Float = frameTop + BAND_THIN * unit
     val innerRight: Float = frameRight - bandRight
     val innerBottom: Float = frameBottom - BAND_THIN * unit
 
-    val contentLeft: Float = innerLeft + TEXT_GAP * unit
-    val contentTop: Float = innerTop + TEXT_GAP * unit
-    private val contentRight: Float = innerRight - TEXT_GAP * unit
-    private val contentBottom: Float = innerBottom - TEXT_GAP * unit
+    val contentLeft: Float = innerLeft + textGap * unit
+    val contentTop: Float = innerTop + textGap * unit
+    private val contentRight: Float = innerRight - textGap * unit
+    private val contentBottom: Float = innerBottom - textGap * unit
 
     val contentWidth: Float = (contentRight - contentLeft).coerceAtLeast(1f)
     val contentHeight: Float = (contentBottom - contentTop).coerceAtLeast(1f)
@@ -81,19 +78,25 @@ internal fun ornateFrameGeometry(
     height: Float,
     pageNumber: Int,
     unit: Float,
+    outerMargin: Float = DEFAULT_OUTER_MARGIN,
+    innerMargin: Float = DEFAULT_INNER_MARGIN,
+    topMargin: Float = DEFAULT_TOP_MARGIN,
+    bottomMargin: Float = DEFAULT_BOTTOM_MARGIN,
+    textGap: Float = DEFAULT_TEXT_GAP,
 ): MushafFrameGeometry {
     val rightPage = isRightPage(pageNumber)
-    val leftMargin = (if (rightPage) INNER_MARGIN else OUTER_MARGIN) * unit
-    val rightMargin = (if (rightPage) OUTER_MARGIN else INNER_MARGIN) * unit
+    val leftMargin = (if (rightPage) innerMargin else outerMargin) * unit
+    val rightMargin = (if (rightPage) outerMargin else innerMargin) * unit
     return MushafFrameGeometry(
         unit = unit,
         rightPage = rightPage,
         frameLeft = leftMargin,
-        frameTop = TOP_MARGIN * unit,
+        frameTop = topMargin * unit,
         frameRight = width - rightMargin,
-        frameBottom = height - BOTTOM_MARGIN * unit,
+        frameBottom = height - bottomMargin * unit,
         bandLeft = (if (rightPage) BAND_THIN else BAND_OUTER) * unit,
         bandRight = (if (rightPage) BAND_OUTER else BAND_THIN) * unit,
+        textGap = textGap,
     )
 }
 
@@ -385,7 +388,7 @@ internal fun DrawScope.drawClassicSurahHeader(
     )
 
     // ٥) لوحتان على الجانبين (زي القارئ الكلاسيكي):
-    // شمال = آياتها + العدد، يمين = مكية/مدنية + رقم السورة.
+    // شمال = العدد بكلمته (مثل «٧ آيات»)، يمين = مكية/مدنية + رقم السورة.
     val panelHalf = (w - 2 * cw - 48 * s) / 2f
     val panelTop = top + 17 * s
     val panelBottom = top + h - 17 * s

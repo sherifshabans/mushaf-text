@@ -1,5 +1,19 @@
 # Release notes
 
+## Unreleased — page margins & header panels
+
+- **Page number:** host apps that drew their own footer under `MushafPage` while
+  `pageFrame` was on saw the number twice (footer + frame medallion). The medallion
+  remains the single source when the frame is on; hosts should hide any extra footer.
+- **Margins (configurable on `MushafDecoration`):**
+  - `textGap` (default **8**, was 5) — more room between ayat and the ornate band.
+  - `frameOuterMargin` / `frameInnerMargin` / `frameTopMargin` / `frameBottomMargin`
+    (defaults **5 / 2 / 1.5 / 14**, were 9 / 3 / 2 / 19) — frame sits closer to the
+    page edge.
+- **Surah header panels:** drop the «آياتها» caption; left panel is just
+  `ayahCountLabel` (e.g. `٧ آيات`). Right panel is one larger line
+  «مكية ١» / «مدنية ٢». Panel text size raised (~0.55× page font).
+
 ## 1.5.0 — decoration, stable
 
 `MushafDecoration` now actually owns the page it decorates. Previously the frame was drawn *over*

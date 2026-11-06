@@ -41,6 +41,15 @@ data class SurahHeaderOverride(
  * @param ayahFrame draw a light frame around highlighted / selected / playing
  *   ayahs. The frame is padded off the glyphs and joins across a multi-line ayah.
  * @param surahHeaderOverrides optional per-surah revelation / count / name overrides.
+ * @param textGap density-independent units between the frame's inner edge and the
+ *   ayah text (same scale as [frameOuterMargin]). Larger = more room between ayat
+ *   and the ornate band. Default 8 (was previously hardcoded 5).
+ * @param frameOuterMargin margin of the ornate frame from the canvas edge on the
+ *   outer (spine) side. Smaller = frame closer to the page edge. Default 5 (was 9).
+ * @param frameInnerMargin margin on the inner (gutter) side. Default 2 (was 3).
+ * @param frameTopMargin top margin of the frame. Default 1.5 (was 2).
+ * @param frameBottomMargin bottom margin; leave room for the page-number medallion.
+ *   Default 14 (was 19).
  */
 @Immutable
 data class MushafDecoration(
@@ -52,6 +61,11 @@ data class MushafDecoration(
      * Typical use: pass revelation types from the host app's database.
      */
     val surahHeaderOverrides: Map<Int, SurahHeaderOverride> = emptyMap(),
+    val textGap: Float = 8f,
+    val frameOuterMargin: Float = 5f,
+    val frameInnerMargin: Float = 2f,
+    val frameTopMargin: Float = 1.5f,
+    val frameBottomMargin: Float = 14f,
 ) {
     companion object {
         val None = MushafDecoration()

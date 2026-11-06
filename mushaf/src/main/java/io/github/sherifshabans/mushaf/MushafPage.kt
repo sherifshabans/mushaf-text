@@ -396,13 +396,13 @@ internal class DrawnBanner(
     val surahNumber: Int,
     val ayahCount: Int,
     val revelationType: RevelationType,
-    /** رقم السورة — قيمة لوحة اليمين، مكان لوحة النزول. */
+    /** رقم السورة — قيمة لوحة اليمين (اختياري؛ غالبًا مدموج في [revelationLayout]). */
     val orderLayout: TextLayoutResult?,
-    /** لافتة لوحة اليمين: مكية / مدنية. */
+    /** لوحة اليمين: «مكية ١» / «مدنية ٢» (أو لافتة النزول وحدها لو فُصلت). */
     val revelationLayout: TextLayoutResult?,
-    /** تسمية لوحة العدد: آياتها. */
+    /** تسمية لوحة العدد (اختياري؛ الافتراضي null بعد إزالة «آياتها»). */
     val countCaptionLayout: TextLayoutResult?,
-    /** قيمة لوحة العدد (مثل «١٧٦ آية»). */
+    /** قيمة لوحة العدد (مثل «١٧٦ آية» / «٧ آيات»). */
     val countLayout: TextLayoutResult?,
 )
 
@@ -577,9 +577,30 @@ private fun MushafPageBody(
 
         // الإطار بيحسب حدوده مرة واحدة، والنص بيتخطّط جوّه `content*` بتاعته.
         // ده اللي بيمنع السطور إنها تعدّي فوق الإطار وحبل الخرز.
-        val frame = remember(decoration.pageFrame, widthPx, heightPx, pageNumber, density.density) {
+        val frame = remember(
+            decoration.pageFrame,
+            decoration.textGap,
+            decoration.frameOuterMargin,
+            decoration.frameInnerMargin,
+            decoration.frameTopMargin,
+            decoration.frameBottomMargin,
+            widthPx,
+            heightPx,
+            pageNumber,
+            density.density,
+        ) {
             if (decoration.pageFrame) {
-                ornateFrameGeometry(widthPx, heightPx, pageNumber ?: 1, density.density)
+                ornateFrameGeometry(
+                    width = widthPx,
+                    height = heightPx,
+                    pageNumber = pageNumber ?: 1,
+                    unit = density.density,
+                    outerMargin = decoration.frameOuterMargin,
+                    innerMargin = decoration.frameInnerMargin,
+                    topMargin = decoration.frameTopMargin,
+                    bottomMargin = decoration.frameBottomMargin,
+                    textGap = decoration.textGap,
+                )
             } else {
                 null
             }
@@ -911,8 +932,8 @@ private fun buildPageDrawing(
                     else "سُورَةُ $clean"
                 } ?: ("سُورَةُ " + surah.nameArabic)
 
-                // لوحة الشمال: آياتها + العدد بكلمته. لوحة اليمين: مكية/مدنية
-                // وتحتها رقم السورة — مكان لوحة النزول في الأصل.
+                // لوحة الشمال: العدد بكلمته فقط (مثل «٧ آيات» — بدون «آياتها»).
+                // لوحة اليمين: «مكية ١» / «مدنية ٢» سطر واحد أوضح وأكبر.
                 val nameMaxWidth = surahNameMaxWidth(widthPx, boxHeight)
                 val nameText = fitted(
                     displayName,
@@ -929,35 +950,21 @@ private fun buildPageDrawing(
                     SurahHeaderStyle.MODERN -> frameColors.headerText
                     else -> frameColors.frameLine
                 }
-                val captionStyle = { size: Float -> labelTextStyle(size, panelInk.copy(alpha = 0.75f)) }
                 val valueStyle = { size: Float -> labelTextStyle(size, panelInk) }
-                val countCaptionLayout = fitted(
-                    "آياتها",
-                    captionStyle,
-                    layout.fontSize * 0.32f,
-                    panelWidth * 0.85f,
-                    panelHeight * 0.28f,
-                )
                 val countLayout = fitted(
                     ayahCountLabel(ayahCount),
                     valueStyle,
-                    layout.fontSize * 0.42f,
-                    panelWidth * 0.85f,
-                    panelHeight * 0.42f,
+                    layout.fontSize * 0.55f,
+                    panelWidth * 0.92f,
+                    panelHeight * 0.72f,
                 )
+                val revelationLine = revelation.labelArabic + " " + toArabicDigits(slot.surah)
                 val revelationLayout = fitted(
-                    revelation.labelArabic,
-                    captionStyle,
-                    layout.fontSize * 0.32f,
-                    panelWidth * 0.85f,
-                    panelHeight * 0.28f,
-                )
-                val orderLayout = fitted(
-                    toArabicDigits(slot.surah),
+                    revelationLine,
                     valueStyle,
-                    layout.fontSize * 0.45f,
-                    panelWidth * 0.6f,
-                    panelHeight * 0.42f,
+                    layout.fontSize * 0.55f,
+                    panelWidth * 0.92f,
+                    panelHeight * 0.72f,
                 )
 
                 banners += DrawnBanner(
@@ -970,9 +977,9 @@ private fun buildPageDrawing(
                     surahNumber = slot.surah,
                     ayahCount = ayahCount,
                     revelationType = revelation,
-                    orderLayout = orderLayout,
+                    orderLayout = null,
                     revelationLayout = revelationLayout,
-                    countCaptionLayout = countCaptionLayout,
+                    countCaptionLayout = null,
                     countLayout = countLayout,
                 )
             }
