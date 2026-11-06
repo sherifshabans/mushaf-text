@@ -118,5 +118,17 @@ fun toArabicDigits(n: Int): String {
     return n.toString().map { if (it.isDigit()) digits[it - '0'] else it }.joinToString("")
 }
 
+/**
+ * عدد الآيات بكلمته: `7` → `٧ آيات`، `176` → `١٧٦ آية`، `2` → `آيتان`.
+ *
+ * جمع العربية: ٣–١٠ جمع (آيات)، و١١ فأكثر مفرد منصوب (آية).
+ */
+fun ayahCountLabel(count: Int): String = when {
+    count == 1 -> "آية واحدة"
+    count == 2 -> "آيتان"
+    count in 3..10 -> "${toArabicDigits(count)} آيات"
+    else -> "${toArabicDigits(count)} آية"
+}
+
 /** The basmala in the same Uthmanic spelling as the text. */
 const val BASMALA = "بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ"

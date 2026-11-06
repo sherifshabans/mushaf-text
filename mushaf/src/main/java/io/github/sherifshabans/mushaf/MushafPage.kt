@@ -16,9 +16,13 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -29,6 +33,7 @@ import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.Density
@@ -65,6 +70,13 @@ private const val CENTERED_LINE_SPACING = 1.9f
 
 private const val BANNER_INSET = 0.08f
 private const val BANNER_HEIGHT = 0.84f
+
+/** حشوة تظليل الآية: أفقية تخلّي النص ما يلمسش الحافة، ورأسية تفصل الآيات. */
+private const val AYAH_PAD_X_DP = 2f
+private const val AYAH_PAD_Y_DP = 2f
+
+/** نصف قطر زوايا إطار الآية (`MushafDecoration.ayahFrame`). */
+private const val AYAH_FRAME_RADIUS_DP = 4f
 
 /** نسبة ارتفاع الصفحة لعرضها لو الأب مابيحدّدش ارتفاع (جوّه scroll مثلًا). */
 private const val FALLBACK_ASPECT = 1.62f
@@ -174,16 +186,14 @@ fun MushafPage(
     // فبدون التثبيت السقف `maxFontSize` بيتضرب في مقياس الجهاز والصفحة تخرج من
     // حافتيها — ومن أندرويد ١٤ التحويل sp→px مش خطّي أصلًا فالحسبة تبوظ.
     val platformDensity = LocalDensity.current
-    // لو فيه إطار، نزود الـ padding عشان النص يفضل جوه الإطار (زي contentPadding في الإطار القديم).
-    val framePad = if (decoration.pageFrame) PaddingValues(
-        start = 28.dp, end = 28.dp, top = 18.dp, bottom = 32.dp
-    ) else PaddingValues(0.dp)
+    // الإطار نفسه هو اللي بيحدّد منطقة النص (MushafFrameGeometry)، فمفيش padding
+    // إضافي هنا — أي padding زيادة كان بيقلّل الخط من غير داعي.
     CompositionLocalProvider(
         LocalDensity provides Density(platformDensity.density, fontScale = 1f)
     ) {
         MushafPageBody(
             ayahs = ayahs,
-            modifier = modifier.padding(contentPadding).padding(framePad),
+            modifier = modifier.padding(contentPadding),
             tajweed = tajweed,
             naturalMadd = naturalMadd,
             colors = colors,
@@ -205,6 +215,20 @@ private fun mushafTextStyle(fontSize: Float, color: Color) = TextStyle(
     fontFamily = MushafFont,
     fontSize = fontSize.sp,
     color = color
+)
+
+/**
+ * نمط للأرقام في الترويسة والميدالية.
+ *
+ * **مش** خط المصحف: خط KFGQPC بيلمّ أي تتابع أرقام في وردة آية، فـ«٢٨٦» كانت
+ * بتطلع وردتين ورقم الصفحة وردة. الاتجاه RTL عشان الكلمة اللي مع الرقم
+ * («١٧٦ آية») تيجي في مكانها الصح — الأرقام نفسها بتترسم LTR جوّه الفقرة.
+ */
+private fun labelTextStyle(fontSize: Float, color: Color) = TextStyle(
+    fontFamily = FontFamily.SansSerif,
+    fontSize = fontSize.sp,
+    color = color,
+    textDirection = TextDirection.Rtl
 )
 
 /**
@@ -278,14 +302,103 @@ private class DrawnVerseLine(
     val tokens: List<PlacedToken>
 )
 
+/** ألوان التظليل: [fill] اللي بيترسم، و[stroke] إطار `ayahFrame` بنفس اللون. */
+private class Wash(val fill: Color, val stroke: Color)
+
+/**
+ * امتداد آية واحدة على سطر واحد، بعد الحشوة.
+ *
+ * [continuesAbove]/[continuesBelow] بيقولوا إن الآية مكمّلة على السطر اللي قبله
+ * أو بعده، فالحشوة الرأسية بتتشال من الناحية دي والزوايا بتترسم حادة — كده
+ * تظليل الآية الطويلة بيطلع بلوك واحد مش شرايط منفصلة.
+ */
+private class AyahRun(
+    val fill: Color,
+    val stroke: Color,
+    val left: Float,
+    val right: Float,
+    val top: Float,
+    val bottom: Float,
+    val continuesAbove: Boolean,
+    val continuesBelow: Boolean,
+)
+
+/**
+ * يجمّع كلمات كل سطر في امتدادات آيات، ويضيف الحشوة ويقصّها على حدود عمود النص.
+ */
+private fun ayahRuns(
+    verses: List<DrawnVerseLine>,
+    lineWidth: Float,
+    padX: Float,
+    padY: Float,
+    washOf: (Int) -> Wash?,
+): List<AyahRun> {
+    class Raw(val line: Int, val ayah: Int, val wash: Wash, val left: Float, val right: Float)
+    val raw = ArrayList<Raw>()
+
+    verses.forEachIndexed { index, line ->
+        var start: PlacedToken? = null
+        var end: PlacedToken? = null
+        var ayah = -1
+        var wash: Wash? = null
+        fun flush() {
+            val a = start
+            val b = end
+            val w = wash
+            if (a != null && b != null && w != null) {
+                raw += Raw(
+                    index, ayah, w,
+                    min(a.left, b.left), max(a.left + a.width, b.left + b.width)
+                )
+            }
+            start = null; end = null; ayah = -1; wash = null
+        }
+        line.tokens.forEach { p ->
+            val id = p.token.ayahId
+            val next = washOf(id)
+            if (next != null && (id != ayah || next.fill != wash?.fill)) {
+                flush(); ayah = id; wash = next; start = p
+            } else if (next == null && wash != null) {
+                flush()
+            }
+            if (wash != null) end = p
+        }
+        flush()
+    }
+
+    if (raw.isEmpty()) return emptyList()
+    val present = raw.mapTo(HashSet()) { it.line to it.ayah }
+    return raw.map { r ->
+        val above = (r.line - 1) to r.ayah in present
+        val below = (r.line + 1) to r.ayah in present
+        val band = verses[r.line]
+        AyahRun(
+            fill = r.wash.fill,
+            stroke = r.wash.stroke,
+            left = max(0f, r.left - padX),
+            right = min(lineWidth, r.right + padX),
+            top = if (above) band.bandTop else band.bandTop + padY,
+            bottom = if (below) band.bandBottom else band.bandBottom - padY,
+            continuesAbove = above,
+            continuesBelow = below,
+        )
+    }
+}
+
 internal class DrawnBanner(
     val boxTop: Float,
     val boxHeight: Float,
+    /** عرض عمود النص — الشريط بيمتدّ بعرضه بالظبط، مش بعرض الـCanvas. */
+    val width: Float,
     val layout: TextLayoutResult,
     val textLeft: Float,
     val textTop: Float,
     val surahNumber: Int,
     val ayahCount: Int,
+    /** رقم السورة بأرقام عربية، بيتـرسـم تحت الاسم جوّه الكارتوث. */
+    val orderLayout: TextLayoutResult,
+    /** عدد آيات السورة بأرقام عربية، مقيس للوحة العدد في الترويسة الكلاسيكية. */
+    val countLayout: TextLayoutResult?,
 )
 
 private class DrawnText(val layout: TextLayoutResult, val left: Float, val top: Float)
@@ -293,7 +406,9 @@ private class DrawnText(val layout: TextLayoutResult, val left: Float, val top: 
 private class PageDrawing(
     val verses: List<DrawnVerseLine>,
     val banners: List<DrawnBanner>,
-    val basmalas: List<DrawnText>
+    val basmalas: List<DrawnText>,
+    /** رقم الصفحة بأرقام عربية، مقيس لميدالية الإطار. */
+    val pageNumberLayout: TextLayoutResult?,
 )
 
 private class PageLayout(
@@ -455,21 +570,44 @@ private fun MushafPageBody(
             else widthPx * FALLBACK_ASPECT
         if (ayahs.isEmpty() || widthPx <= 0f || heightPx <= 0f) return@BoxWithConstraints
 
-        val drawing = remember(tokens, widthPx, heightPx, maxFontSize, reference, tajweedByAyah, colors) {
+        // الإطار بيحسب حدوده مرة واحدة، والنص بيتخطّط جوّه `content*` بتاعته.
+        // ده اللي بيمنع السطور إنها تعدّي فوق الإطار وحبل الخرز.
+        val frame = remember(decoration.pageFrame, widthPx, heightPx, pageNumber, density.density) {
+            if (decoration.pageFrame) {
+                ornateFrameGeometry(widthPx, heightPx, pageNumber ?: 1, density.density)
+            } else {
+                null
+            }
+        }
+        val contentLeft = frame?.contentLeft ?: 0f
+        val contentTop = frame?.contentTop ?: 0f
+        val contentWidth = frame?.contentWidth ?: widthPx
+        val contentHeight = frame?.contentHeight ?: heightPx
+
+        val drawing = remember(
+            tokens, contentWidth, contentHeight, maxFontSize, reference, tajweedByAyah,
+            colors, decoration, pageNumber
+        ) {
             val layout = reference
-                ?.let { referencePageLayout(tokens, it, widthPx, heightPx, maxFontSize, measurer) }
-                ?: computedPageLayout(tokens, usedLines, widthPx, heightPx, maxFontSize, measurer)
+                ?.let {
+                    referencePageLayout(tokens, it, contentWidth, contentHeight, maxFontSize, measurer)
+                }
+                ?: computedPageLayout(
+                    tokens, usedLines, contentWidth, contentHeight, maxFontSize, measurer
+                )
             buildPageDrawing(
                 slots = buildLineSlots(layout, ayahs, reference),
                 layout = layout,
                 reference = reference,
                 // الفاتحة وأول البقرة: ثمانية سطور متوسّطة بتباعد أوسع.
                 centerLines = pageNumber != null && pageNumber <= 2,
-                widthPx = widthPx,
-                heightPx = heightPx,
+                widthPx = contentWidth,
+                heightPx = contentHeight,
                 measurer = measurer,
                 colors = colors,
-                tajweedByAyah = tajweedByAyah
+                tajweedByAyah = tajweedByAyah,
+                decoration = decoration,
+                pageNumber = pageNumber
             )
         }
 
@@ -478,17 +616,19 @@ private fun MushafPageBody(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(canvasHeight)
-                .pointerInput(drawing) {
+                .pointerInput(drawing, contentLeft, contentTop) {
                     detectTapGestures(
                         onLongPress = { pos ->
-                            val hit = hitTest(drawing, pos) ?: return@detectTapGestures
+                            val hit = hitTest(drawing, pos - Offset(contentLeft, contentTop))
+                                ?: return@detectTapGestures
                             ayahById[hit.token.token.ayahId]?.let { longClickAyah?.invoke(it) }
                         },
                         onTap = { pos ->
-                            val hit = hitTest(drawing, pos) ?: return@detectTapGestures
+                            val hit = hitTest(drawing, pos - Offset(contentLeft, contentTop))
+                                ?: return@detectTapGestures
                             val ayah = ayahById[hit.token.token.ayahId] ?: return@detectTapGestures
                             val onRule = clickTajweed
-                            val span = onRule?.let { spanUnder(hit, pos) }
+                            val span = onRule?.let { spanUnder(hit, pos - Offset(contentLeft, contentTop)) }
                             if (onRule != null && span != null) {
                                 onRule(
                                     TajweedHit(span.rule, ayah, hit.token.token.text, span.start, span.end)
@@ -500,89 +640,121 @@ private fun MushafPageBody(
         ) {
             // ٠) إطار الصفحة إن وُجد — نسخة من الإطار الزخرفي الحالي في التطبيق
             // (حبل من الخرز على الجانب الخارجي + ماسات + خطين + ميدالية رقم الصفحة).
-            if (decoration.pageFrame) {
+            if (frame != null) {
                 drawOrnatePageFrame(
+                    geometry = frame,
                     colors = colors,
                     style = decoration.surahHeaderStyle,
                     pageNumber = pageNumber ?: 1,
+                    pageNumberLayout = drawing.pageNumberLayout,
                 )
             }
 
-            // ١) تظليل الآيات — محصور في شريحة سطره عشان مايزحفش على اللي فوق وتحت.
-            drawing.verses.forEach { line ->
-                var runStart: PlacedToken? = null
-                var runEnd: PlacedToken? = null
-                var runColor = Color.Unspecified
-                fun flush() {
-                    val a = runStart
-                    val b = runEnd
-                    if (a != null && b != null && runColor != Color.Unspecified) {
-                        val left = min(a.left, b.left)
-                        val right = max(a.left + a.width, b.left + b.width)
-                        drawRect(
-                            color = runColor,
-                            topLeft = Offset(left, line.bandTop),
-                            size = Size(right - left, line.bandBottom - line.bandTop)
-                        )
-                    }
-                    runStart = null; runEnd = null; runColor = Color.Unspecified
-                }
-                line.tokens.forEach { p ->
-                    val id = p.token.ayahId
-                    val bg = when {
+            // كل المحتوى بيتـرسـم في إحداثيات الإطار الداخلية.
+            translate(left = contentLeft, top = contentTop) {
+                // ١) تظليل الآيات — آية واحدة لكل مستطيل، بحشوة تخلّي النص
+                // ما يلمسش حافة التظليل، ومتوصل رأسيًا لو الآية مكمّلة على سطر
+                // بعده.
+                val padX = AYAH_PAD_X_DP.dp.toPx()
+                val padY = AYAH_PAD_Y_DP.dp.toPx()
+                val runs = ayahRuns(drawing.verses, contentWidth, padX, padY) { id ->
+                    // الإطار لونه أغمق من التظليل؛ لو استخدمنا نفس اللون مش هيبان.
+                    when {
                         // التلاوة الجارية أولًا: القارئ بيتابع بعينه على السطر.
-                        id in playingAyahIds -> colors.playing
-                        id in highlightedAyahs -> highlightedAyahs.getValue(id).copy(alpha = 0.30f)
-                        id in selectedAyahIds -> colors.selection
-                        else -> Color.Unspecified
-                    }
-                    if (bg != runColor) { flush(); runColor = bg; runStart = p }
-                    runEnd = p
-                }
-                flush()
-            }
-
-            // ١ب) موضع الحكم المطلوب — إطار حوالين **الكلمة** بلون الحكم.
-            if (focusRule != null) {
-                val spots = ArrayList<Pair<DrawnVerseLine, PlacedToken>>()
-                drawing.verses.forEach { line ->
-                    line.tokens.forEach { p ->
-                        if (p.tajweed.any { it.rule == focusRule }) spots += line to p
+                        id in playingAyahIds -> Wash(
+                            fill = colors.playing,
+                            stroke = lerp(colors.playing, colors.ink, 0.45f),
+                        )
+                        id in highlightedAyahs -> highlightedAyahs.getValue(id).let { raw ->
+                            Wash(
+                                fill = raw.copy(alpha = 0.30f),
+                                stroke = lerp(raw, colors.ink, 0.35f),
+                            )
+                        }
+                        id in selectedAyahIds -> Wash(
+                            fill = colors.selection,
+                            stroke = lerp(colors.selection, colors.ink, 0.30f),
+                        )
+                        else -> null
                     }
                 }
-                if (spots.isNotEmpty()) {
-                    val (line, p) = spots[((focusIndex % spots.size) + spots.size) % spots.size]
-                    val ruleColor = colors.tajweedColor(focusRule)
-                    val pad = 3.dp.toPx()
-                    val box = CornerRadius(7.dp.toPx())
-                    val topLeft = Offset(p.left - pad, line.bandTop)
-                    val boxSize = Size(p.width + pad * 2, line.bandBottom - line.bandTop)
-                    drawRoundRect(ruleColor.copy(alpha = 0.16f), topLeft, boxSize, box)
-                    drawRoundRect(
-                        ruleColor.copy(alpha = 0.70f), topLeft, boxSize, box,
-                        style = Stroke(width = 1.5.dp.toPx())
+                runs.forEach { run ->
+                    drawRect(
+                        color = run.fill,
+                        topLeft = Offset(run.left, run.top),
+                        size = Size(run.right - run.left, run.bottom - run.top),
                     )
                 }
-            }
 
-            // ٢) بانرات أسماء السور.
-            drawing.banners.forEach { banner ->
-                if (decoration.surahHeaderStyle == SurahHeaderStyle.CLASSIC) {
-                    drawClassicSurahHeader(banner = banner, colors = colors)
-                } else if (decoration.surahHeaderStyle == SurahHeaderStyle.MODERN) {
-                    val frameColors = MushafFrameColors.of(SurahHeaderStyle.MODERN, colors)
-                    val radius = CornerRadius(20.dp.toPx())
-                    drawRoundRect(frameColors.headerFill, Offset(0f, banner.boxTop), Size(size.width, banner.boxHeight), radius)
-                    drawText(banner.layout, topLeft = Offset(banner.textLeft, banner.textTop))
-                } else {
-                    drawText(banner.layout, topLeft = Offset(banner.textLeft, banner.textTop))
+                // ١ب) إطار الآية — نفس المستطيلات بحشوتها، عشان `ayahFrame` يبقى
+                // حوالين النص مش لازق فيه.
+                if (decoration.ayahFrame) {
+                    val radius = AYAH_FRAME_RADIUS_DP.dp.toPx()
+                    val stroke = 1.2f.dp.toPx()
+                    runs.forEach { run ->
+                        val topRadius = if (run.continuesAbove) CornerRadius.Zero else CornerRadius(radius)
+                        val bottomRadius = if (run.continuesBelow) CornerRadius.Zero else CornerRadius(radius)
+                        val path = Path().apply {
+                            addRoundRect(
+                                RoundRect(
+                                    run.left, run.top, run.right, run.bottom,
+                                    topRadius, topRadius, bottomRadius, bottomRadius
+                                )
+                            )
+                        }
+                        drawPath(path, run.stroke.copy(alpha = 0.8f), style = Stroke(stroke))
+                    }
                 }
-            }
 
-            // ٣) البسملة، ٤) الكلمات والوردة.
-            drawing.basmalas.forEach { drawText(it.layout, topLeft = Offset(it.left, it.top)) }
-            drawing.verses.forEach { line ->
-                line.tokens.forEach { p -> drawText(p.layout, topLeft = Offset(p.left, line.textTop)) }
+                // ١ج) موضع الحكم المطلوب — إطار حوالين **الكلمة** بلون الحكم.
+                if (focusRule != null) {
+                    val spots = ArrayList<Pair<DrawnVerseLine, PlacedToken>>()
+                    drawing.verses.forEach { line ->
+                        line.tokens.forEach { p ->
+                            if (p.tajweed.any { it.rule == focusRule }) spots += line to p
+                        }
+                    }
+                    if (spots.isNotEmpty()) {
+                        val (line, p) =
+                            spots[((focusIndex % spots.size) + spots.size) % spots.size]
+                        val ruleColor = colors.tajweedColor(focusRule)
+                        val pad = 3.dp.toPx()
+                        val box = CornerRadius(7.dp.toPx())
+                        val topLeft = Offset(p.left - pad, line.bandTop + padY)
+                        val boxSize = Size(
+                            p.width + pad * 2,
+                            line.bandBottom - line.bandTop - padY * 2
+                        )
+                        drawRoundRect(ruleColor.copy(alpha = 0.16f), topLeft, boxSize, box)
+                        drawRoundRect(
+                            ruleColor.copy(alpha = 0.70f), topLeft, boxSize, box,
+                            style = Stroke(width = 1.5.dp.toPx())
+                        )
+                    }
+                }
+
+                // ٢) بانرات أسماء السور.
+                drawing.banners.forEach { banner ->
+                    when (decoration.surahHeaderStyle) {
+                        SurahHeaderStyle.CLASSIC ->
+                            drawClassicSurahHeader(banner = banner, colors = colors)
+                        SurahHeaderStyle.MODERN ->
+                            drawModernSurahHeader(banner = banner, colors = colors)
+                        SurahHeaderStyle.PLAIN ->
+                            drawText(
+                                banner.layout,
+                                topLeft = Offset(banner.textLeft, banner.textTop)
+                            )
+                    }
+                }
+
+                // ٣) البسملة، ٤) الكلمات والوردة.
+                drawing.basmalas.forEach { drawText(it.layout, topLeft = Offset(it.left, it.top)) }
+                drawing.verses.forEach { line ->
+                    line.tokens.forEach { p ->
+                        drawText(p.layout, topLeft = Offset(p.left, line.textTop))
+                    }
+                }
             }
         }
     }
@@ -661,11 +833,28 @@ private fun buildPageDrawing(
     heightPx: Float,
     measurer: TextMeasurer,
     colors: MushafColors,
-    tajweedByAyah: Map<Int, List<TajweedSpan>>
+    tajweedByAyah: Map<Int, List<TajweedSpan>>,
+    decoration: MushafDecoration,
+    pageNumber: Int?
 ): PageDrawing {
     val style = mushafTextStyle(layout.fontSize, colors.ink)
     val markerStyle = style.copy(color = colors.marker)
     val lineBox = measurer.measure(AnnotatedString("ا"), style).size.height.toFloat()
+
+    // لون اسم السورة لازم يطابق اللي هيترسم عليه: كارتوث غامق في الكلاسيك،
+    // فالنص فاتح. والعدد على شريط فاتح، فلونه خط الإطار الذهبي.
+    val frameColors = MushafFrameColors.of(decoration.surahHeaderStyle, colors)
+    val bannerInk = when (decoration.surahHeaderStyle) {
+        SurahHeaderStyle.CLASSIC, SurahHeaderStyle.MODERN -> frameColors.headerText
+        SurahHeaderStyle.PLAIN -> colors.bannerText
+    }
+
+    val pageNumberLayout = pageNumber?.let {
+        measurer.measure(
+            AnnotatedString(toArabicDigits(it)),
+            labelTextStyle(layout.fontSize * 0.34f, colors.marker)
+        )
+    }
 
     val pitch: Float
     val offsetY: Float
@@ -687,20 +876,65 @@ private fun buildPageDrawing(
             is LineSlot.Blank -> Unit
 
             is LineSlot.Banner -> {
-                val text = measurer.measure(
-                    AnnotatedString("سُورَةُ " + Quran.surah(slot.surah).nameArabic),
-                    mushafTextStyle(layout.fontSize * 0.9f, colors.bannerText)
-                )
+                val surah = Quran.surah(slot.surah)
                 val boxTop = bandTop + pitch * BANNER_INSET
                 val boxHeight = pitch * BANNER_HEIGHT
+
+                /** يقيس نصًّا ويقصّ حجمه على الصندوق اللي هيتـرسـم جوّاه. */
+                fun fitted(
+                    text: String,
+                    style: (Float) -> TextStyle,
+                    size: Float,
+                    maxWidth: Float,
+                    maxHeight: Float,
+                ): TextLayoutResult {
+                    var layout = measurer.measure(AnnotatedString(text), style(size))
+                    val scale = min(
+                        if (layout.size.width > maxWidth) maxWidth / layout.size.width else 1f,
+                        if (layout.size.height > maxHeight) maxHeight / layout.size.height else 1f,
+                    )
+                    if (scale < 1f) layout = measurer.measure(AnnotatedString(text), style(size * scale))
+                    return layout
+                }
+
+                val nameMaxWidth = surahNameMaxWidth(widthPx, boxHeight)
+                val text = fitted(
+                    "سُورَةُ " + surah.nameArabic,
+                    { mushafTextStyle(it, bannerInk) },
+                    layout.fontSize * 0.9f,
+                    nameMaxWidth,
+                    surahNameMaxHeight(widthPx, boxHeight),
+                )
+
+                // لوحة الشمال: عدد الآيات بكلمته. لوحة اليمين: رقم السورة — مكان
+                // لوحة النزول في الأصل.
+                val (panelWidth, panelHeight) = surahCountPanelSize(widthPx, boxHeight)
+                val countLayout = fitted(
+                    ayahCountLabel(surah.ayahCount),
+                    { labelTextStyle(it, frameColors.frameLine) },
+                    layout.fontSize * 0.5f,
+                    panelWidth * 0.8f,
+                    panelHeight * 0.72f,
+                )
+                val orderLayout = fitted(
+                    toArabicDigits(slot.surah),
+                    { labelTextStyle(it, frameColors.frameLine) },
+                    layout.fontSize * 0.5f,
+                    panelWidth * 0.5f,
+                    panelHeight * 0.72f,
+                )
+
                 banners += DrawnBanner(
                     boxTop = boxTop,
                     boxHeight = boxHeight,
+                    width = widthPx,
                     layout = text,
                     textLeft = (widthPx - text.size.width) / 2f,
                     textTop = boxTop + (boxHeight - text.size.height) / 2f,
                     surahNumber = slot.surah,
-                    ayahCount = Quran.surah(slot.surah).ayahCount,
+                    ayahCount = surah.ayahCount,
+                    orderLayout = orderLayout,
+                    countLayout = countLayout,
                 )
             }
 
@@ -738,7 +972,7 @@ private fun buildPageDrawing(
             }
         }
     }
-    return PageDrawing(verses, banners, basmalas)
+    return PageDrawing(verses, banners, basmalas, pageNumberLayout)
 }
 
 /** كلمات السطر من اليمين لليسار، والفراغ الزايد بيتوزّع بالتساوي على المسافات. */
@@ -778,9 +1012,3 @@ private fun placeTokens(
     }
     return placed
 }
-
-/**
- * Ornamental page frame matching the current MushafFrameDrawable style:
- * band fill, thin diamonds, rope of beads on the outer side, double rules,
- * corner marks, and a simple page-number medallion.
- */

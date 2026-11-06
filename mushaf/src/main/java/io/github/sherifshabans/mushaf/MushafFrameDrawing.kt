@@ -10,76 +10,161 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.drawText
-import androidx.compose.ui.unit.dp
 import kotlin.math.cos
+import kotlin.math.min
 import kotlin.math.sin
+
+/*
+ * إطار الصفحة وترويسة السورة — منقولين من MushafFrameDrawable و SuraHeaderSpan
+ * في QuranyApp.
+ *
+ * الأرقام هنا هي **المصدر الواحد** للرسم ولحشوة النص معًا. قبل كده الصفحة كانت
+ * بتتخطّط بعرض الـCanvas كله والإطار بيترسم بعده جوّه نفس الـCanvas، فالسطور
+ * كانت بتعدّي فوق الإطار وحبل الخرز، والبـanner كان بيخرج من حافتي الإطار.
+ * دلوقتي `ornateFrameGeometry` بيحسب الإطار مرة واحدة، والرسم بيرسمه والنص
+ * بيتخطّط جوّه `content*` بتاعته — فما ينفعش يفترقوا تاني.
+ */
+
+/** مسافة الإطار عن حافة الـCanvas. */
+private const val OUTER_MARGIN = 9f
+private const val INNER_MARGIN = 3f
+private const val TOP_MARGIN = 2f
+
+/** أسفل الصفحة أوسع عشان ميدالية رقم الصفحة. */
+private const val BOTTOM_MARGIN = 19f
+
+/** عرض شريط الإطار: عريض على الجانب الخارجي (وحبل الخرز)، رفيع على الداخلي. */
+private const val BAND_OUTER = 12f
+private const val BAND_THIN = 6f
+
+/** فراغ أمان بين أعمق حبر في الإطار وأول حرف في النص (textGap في الأصل). */
+private const val TEXT_GAP = 5f
+
+/**
+ * أبعاد إطار الصفحة بالبكسل، وحدود منطقة النص اللي جوّاه.
+ *
+ * [contentLeft]/[contentTop] هما أصل الرسم للمحتوى: كل حاجة بتترسم عند 0 بتفضل
+ * جوّه الإطار.
+ */
+internal class MushafFrameGeometry(
+    val unit: Float,
+    val rightPage: Boolean,
+    val frameLeft: Float,
+    val frameTop: Float,
+    val frameRight: Float,
+    val frameBottom: Float,
+    val bandLeft: Float,
+    val bandRight: Float,
+) {
+    val innerLeft: Float = frameLeft + bandLeft
+    val innerTop: Float = frameTop + BAND_THIN * unit
+    val innerRight: Float = frameRight - bandRight
+    val innerBottom: Float = frameBottom - BAND_THIN * unit
+
+    val contentLeft: Float = innerLeft + TEXT_GAP * unit
+    val contentTop: Float = innerTop + TEXT_GAP * unit
+    private val contentRight: Float = innerRight - TEXT_GAP * unit
+    private val contentBottom: Float = innerBottom - TEXT_GAP * unit
+
+    val contentWidth: Float = (contentRight - contentLeft).coerceAtLeast(1f)
+    val contentHeight: Float = (contentBottom - contentTop).coerceAtLeast(1f)
+}
+
+/** الصفحة الفردية يمينية: الجانب الخارجي (الشريط العريض والحبل) على اليمين. */
+internal fun isRightPage(pageNumber: Int): Boolean = pageNumber % 2 == 1
+
+/** يحسب الإطار من أبعاد الـCanvas — نفس الأرقام اللي الرسم بيستخدمها. */
+internal fun ornateFrameGeometry(
+    width: Float,
+    height: Float,
+    pageNumber: Int,
+    unit: Float,
+): MushafFrameGeometry {
+    val rightPage = isRightPage(pageNumber)
+    val leftMargin = (if (rightPage) INNER_MARGIN else OUTER_MARGIN) * unit
+    val rightMargin = (if (rightPage) OUTER_MARGIN else INNER_MARGIN) * unit
+    return MushafFrameGeometry(
+        unit = unit,
+        rightPage = rightPage,
+        frameLeft = leftMargin,
+        frameTop = TOP_MARGIN * unit,
+        frameRight = width - rightMargin,
+        frameBottom = height - BOTTOM_MARGIN * unit,
+        bandLeft = (if (rightPage) BAND_THIN else BAND_OUTER) * unit,
+        bandRight = (if (rightPage) BAND_OUTER else BAND_THIN) * unit,
+    )
+}
+
+/** قطعة معيّنة (بالمية) — تُرسم بالمسار عشان تشتغل في كل الاتجاهات. */
+private fun DrawScope.diamond(
+    cx: Float,
+    cy: Float,
+    r: Float,
+    color: Color,
+) {
+    val d = Path().apply {
+        moveTo(cx - r, cy); lineTo(cx, cy - r); lineTo(cx + r, cy); lineTo(cx, cy + r); close()
+    }
+    drawPath(d, color)
+}
 
 /**
  * Full port of the ornate page frame from MushafFrameDrawable.
- * Band fill (EVEN_ODD), thin diamonds, rope of beads, double rules,
- * corner marks, and a simple page-number medallion.
+ * Band fill, thin diamonds, rope of beads, double rules, corner marks,
+ * and the page-number rosette.
  */
 internal fun DrawScope.drawOrnatePageFrame(
+    geometry: MushafFrameGeometry,
     colors: MushafColors,
     style: SurahHeaderStyle,
     pageNumber: Int,
+    pageNumberLayout: TextLayoutResult? = null,
 ) {
     val frameColors = MushafFrameColors.of(style, colors)
-    val unit = 1.dp.toPx()
-    val rightPage = pageNumber % 2 == 1
-    val outerMargin = 9f * unit
-    val innerMargin = 3f * unit
-    val topMargin = 2f * unit
-    val bottomMargin = 19f * unit
-    val bandOuter = 12f * unit
-    val bandThin = 6f * unit
-    val leftM = if (rightPage) innerMargin else outerMargin
-    val rightM = if (rightPage) outerMargin else innerMargin
-    val frameLeft = leftM
-    val frameTop = topMargin
-    val frameRight = size.width - rightM
-    val frameBottom = size.height - bottomMargin
-    val bl = if (rightPage) bandThin else bandOuter
-    val br = if (rightPage) bandOuter else bandThin
-    val innerLeft = frameLeft + bl
-    val innerTop = frameTop + bandThin
-    val innerRight = frameRight - br
-    val innerBottom = frameBottom - bandThin
+    val unit = geometry.unit
+    val rightPage = geometry.rightPage
+    val frameLeft = geometry.frameLeft
+    val frameTop = geometry.frameTop
+    val frameRight = geometry.frameRight
+    val frameBottom = geometry.frameBottom
+    val innerLeft = geometry.innerLeft
+    val innerTop = geometry.innerTop
+    val innerRight = geometry.innerRight
+    val innerBottom = geometry.innerBottom
 
     // band fill (frame minus inner) via EVEN_ODD
     val path = Path().apply {
         fillType = PathFillType.EvenOdd
-        addRoundRect(RoundRect(frameLeft, frameTop, frameRight, frameBottom, CornerRadius(4 * unit)))
+        addRoundRect(
+            RoundRect(frameLeft, frameTop, frameRight, frameBottom, CornerRadius(4 * unit))
+        )
         addRect(Rect(innerLeft, innerTop, innerRight, innerBottom))
     }
     drawPath(path, frameColors.frameBand)
 
-    fun diamond(cx: Float, cy: Float, r: Float, alpha: Float = 0.5f) {
-        val d = Path().apply {
-            moveTo(cx - r, cy); lineTo(cx, cy - r); lineTo(cx + r, cy); lineTo(cx, cy + r); close()
-        }
-        drawPath(d, frameColors.frameLine.copy(alpha = alpha))
-    }
-
-    // thin diamonds
+    // thin diamonds: along the top/bottom bands, and down the thin side band
+    val softLine = frameColors.frameLine.copy(alpha = 120f / 255f)
     var x = innerLeft + 6 * unit
     while (x < innerRight - 3 * unit) {
-        diamond(x, frameTop + bandThin / 2, 1.5f * unit)
-        diamond(x, frameBottom - bandThin / 2, 1.5f * unit)
+        diamond(x, frameTop + BAND_THIN * unit / 2, 1.5f * unit, softLine)
+        diamond(x, frameBottom - BAND_THIN * unit / 2, 1.5f * unit, softLine)
         x += 9 * unit
     }
-    val thinX = if (rightPage) frameLeft + bandThin / 2 else frameRight - bandThin / 2
     var y = innerTop + 6 * unit
+    val thinX = if (rightPage) frameLeft + BAND_THIN * unit / 2
+    else frameRight - BAND_THIN * unit / 2
     while (y < innerBottom - 3 * unit) {
-        diamond(thinX, y, 1.5f * unit)
+        diamond(thinX, y, 1.5f * unit, softLine)
         y += 9 * unit
     }
 
-    // rope of beads
-    val ropeX = if (rightPage) innerRight + bandOuter / 2 else innerLeft - bandOuter / 2
+    // rope of beads down the wide (outer) band
+    val ropeX = if (rightPage) innerRight + BAND_OUTER * unit / 2
+    else innerLeft - BAND_OUTER * unit / 2
     drawLine(
-        color = frameColors.frameLine.copy(alpha = 0.6f),
+        color = frameColors.frameLine.copy(alpha = 150f / 255f),
         start = Offset(ropeX, innerTop),
         end = Offset(ropeX, innerBottom),
         strokeWidth = 0.8f * unit,
@@ -92,7 +177,7 @@ internal fun DrawScope.drawOrnatePageFrame(
         y += 11 * unit
     }
 
-    // outer border + inner double rule
+    // borders: thick outside line, double rule inside
     drawRoundRect(
         color = frameColors.frameLine,
         topLeft = Offset(frameLeft, frameTop),
@@ -107,7 +192,7 @@ internal fun DrawScope.drawOrnatePageFrame(
         style = Stroke(1.2f * unit),
     )
     drawRect(
-        color = frameColors.frameLine.copy(alpha = 0.6f),
+        color = frameColors.frameLine.copy(alpha = 160f / 255f),
         topLeft = Offset(innerLeft + 2.5f * unit, innerTop + 2.5f * unit),
         size = Size(innerRight - innerLeft - 5f * unit, innerBottom - innerTop - 5f * unit),
         style = Stroke(0.6f * unit),
@@ -117,38 +202,112 @@ internal fun DrawScope.drawOrnatePageFrame(
     listOf(
         Offset(innerLeft, innerTop), Offset(innerRight, innerTop),
         Offset(innerLeft, innerBottom), Offset(innerRight, innerBottom),
-    ).forEach { c -> diamond(c.x, c.y, 3.2f * unit, 1f) }
+    ).forEach { c -> diamond(c.x, c.y, 3.2f * unit, frameColors.frameLine) }
 
-    // page-number medallion (simple circle; text drawn by caller if needed)
+    // page-number rosette, on the bottom border at the outer corner
+    val medallionR = 16f * unit
     val pnX = if (rightPage) frameRight - 30 * unit else frameLeft + 30 * unit
-    val medR = 12f * unit
-    drawCircle(frameColors.frameBand, medR, Offset(pnX, frameBottom))
-    drawCircle(frameColors.frameLine, medR, Offset(pnX, frameBottom), style = Stroke(1.2f * unit))
+    drawRosette(
+        cx = pnX,
+        cy = frameBottom,
+        r = medallionR,
+        fill = frameColors.frameBand,
+        line = frameColors.frameLine,
+        unit = unit,
+    )
+    pageNumberLayout?.let {
+        drawText(
+            it,
+            topLeft = Offset(pnX - it.size.width / 2f, frameBottom - it.size.height / 2f),
+        )
+    }
+}
+
+/** نجمة تمانية زي ميداليات المصحف المطبوع. */
+private fun DrawScope.drawRosette(
+    cx: Float,
+    cy: Float,
+    r: Float,
+    fill: Color,
+    line: Color,
+    unit: Float,
+) {
+    val star = r * 0.74f
+    val path = Path().apply {
+        fillType = PathFillType.NonZero
+        for (i in 0 until 16) {
+            val a = Math.PI / 8 * i - Math.PI / 2
+            val rr = if (i % 2 == 0) r else star * 1.02f
+            val px = cx + (rr * cos(a)).toFloat()
+            val py = cy + (rr * sin(a)).toFloat()
+            if (i == 0) moveTo(px, py) else lineTo(px, py)
+        }
+        close()
+    }
+    drawPath(path, fill)
+    drawPath(path, line, style = Stroke(1.3f * unit))
+
+    drawCircle(fill, star * 0.92f, Offset(cx, cy))
+    drawCircle(line, star * 0.92f, Offset(cx, cy), style = Stroke(0.9f * unit))
 }
 
 /**
- * Full port of the classic surah header from SuraHeaderSpan.drawClassic.
- * Ornamental band, cartouche, side panels for ayah count.
+ * نصف عرض الكارتوث ونصف ارتفاعه لوحدات التصميم — مشترك بين الرسم وقياس الاسم،
+ * عشان الاسم يتقصّ على اللي هيتـرسـم بالظبط.
+ */
+private class CartoucheSize(val halfWidth: Float, val halfHeight: Float)
+
+private fun cartoucheSize(width: Float, height: Float): CartoucheSize {
+    val s = height / 84f
+    val scale = (width / (472 * s)).coerceAtMost(1.15f)
+    val halfWidth = min(118 * s * scale, width * 0.3f)
+    return CartoucheSize(halfWidth, 30 * s)
+}
+
+/** أقصى عرض لاسم السورة جوّه الكارتوث. */
+internal fun surahNameMaxWidth(width: Float, height: Float): Float =
+    (2 * cartoucheSize(width, height).halfWidth - 56 * (height / 84f)).coerceAtLeast(1f)
+
+/** أقصى ارتفاع لاسم السورة جوّه الكارتوث. */
+internal fun surahNameMaxHeight(width: Float, height: Float): Float =
+    (2 * cartoucheSize(width, height).halfHeight * 0.8f).coerceAtLeast(1f)
+
+/** عرض وارتفاع لوحة عدد الآيات في الترويسة الكلاسيكية. */
+internal fun surahCountPanelSize(width: Float, height: Float): Pair<Float, Float> {
+    val s = height / 84f
+    val cw = cartoucheSize(width, height).halfWidth
+    val panelWidth = ((width - 2 * cw - 48 * s) / 2f).coerceAtLeast(0f)
+    return panelWidth to (height - 34 * s).coerceAtLeast(1f)
+}
+
+/**
+ * ترويسة السورة الكلاسيكية — نسخة كاملة من SuraHeaderSpan.drawClassic:
+ * شريط ومعيّنات، حقل داخلي، كارتوث مسحوب بمنحنيات، ولوحة عدد الآيات.
  */
 internal fun DrawScope.drawClassicSurahHeader(
     banner: DrawnBanner,
     colors: MushafColors,
+    frameColors: MushafFrameColors = MushafFrameColors.of(SurahHeaderStyle.CLASSIC, colors),
 ) {
-    val frameColors = MushafFrameColors.of(SurahHeaderStyle.CLASSIC, colors)
-    val w = size.width
+    val w = banner.width
     val h = banner.boxHeight
     val top = banner.boxTop
     val s = h / 84f
-    val cx = w / 2f
     val cy = top + h / 2f
 
-    // outer band
+    // ١) الشريط الخارجي + معيّنات
     drawRoundRect(
         color = frameColors.frameBand,
         topLeft = Offset(s, top + s),
         size = Size(w - 2 * s, h - 2 * s),
         cornerRadius = CornerRadius(5 * s),
     )
+    var dx = 12 * s
+    while (dx < w - 8 * s) {
+        diamond(dx, top + 4.5f * s, 1.6f * s, frameColors.frameLine.copy(alpha = 110f / 255f))
+        diamond(dx, top + h - 4.5f * s, 1.6f * s, frameColors.frameLine.copy(alpha = 110f / 255f))
+        dx += 10 * s
+    }
     drawRoundRect(
         color = frameColors.frameLine,
         topLeft = Offset(s, top + s),
@@ -157,9 +316,9 @@ internal fun DrawScope.drawClassicSurahHeader(
         style = Stroke(1.6f * s),
     )
 
-    // inner field
+    // ٢) الحقل الداخلي — بلون الورق عشان يشتغل في الوضع الليلي كمان
     drawRoundRect(
-        color = Color(0xFFFFF8E7),
+        color = colors.paper,
         topLeft = Offset(8 * s, top + 8 * s),
         size = Size(w - 16 * s, h - 16 * s),
         cornerRadius = CornerRadius(3 * s),
@@ -172,46 +331,117 @@ internal fun DrawScope.drawClassicSurahHeader(
         style = Stroke(1.2f * s),
     )
 
-    // cartouche (rounded for now; full cubic path can be added)
-    val cw = (w * 0.28f).coerceAtMost(118 * s)
-    val ch = 22 * s
-    drawRoundRect(
-        color = frameColors.headerFill,
-        topLeft = Offset(cx - cw, cy - ch),
-        size = Size(2 * cw, 2 * ch),
-        cornerRadius = CornerRadius(8 * s),
-    )
-    drawRoundRect(
-        color = frameColors.frameLine,
-        topLeft = Offset(cx - cw, cy - ch),
-        size = Size(2 * cw, 2 * ch),
-        cornerRadius = CornerRadius(8 * s),
-        style = Stroke(2f * s),
-    )
-    drawCircle(frameColors.frameLine, 3 * s, Offset(cx - cw, cy))
-    drawCircle(frameColors.frameLine, 3 * s, Offset(cx + cw, cy))
+    // ٣) الكارتوث
+    val cartouche = cartoucheSize(w, h)
+    val cw = cartouche.halfWidth
+    val ch = cartouche.halfHeight
+    val cx = w / 2f
 
-    // side panel for ayah count
-    val pw = ((w - 2 * cw - 48 * s) / 2f).coerceAtLeast(0f)
-    if (pw > 18 * s) {
-        val px = 14 * s
-        drawRoundRect(
-            color = Color.Transparent,
-            topLeft = Offset(px, top + 17 * s),
-            size = Size(pw, h - 34 * s),
-            cornerRadius = CornerRadius(6 * s),
-            style = Stroke(width = 1f * s),
+    fun cartouchePath(halfW: Float, halfH: Float) = Path().apply {
+        moveTo(cx - halfW, cy)
+        cubicTo(
+            cx - halfW + 10 * s, cy - halfH * 0.55f,
+            cx - halfW + 14 * s, cy - halfH,
+            cx - halfW + 34 * s, cy - halfH,
         )
-        fun diamond(cx: Float, cy: Float, r: Float) {
-            val d = Path().apply {
-                moveTo(cx - r, cy); lineTo(cx, cy - r); lineTo(cx + r, cy); lineTo(cx, cy + r); close()
-            }
-            drawPath(d, frameColors.frameLine)
-        }
-        diamond(px + pw / 2, top + 17 * s, 4 * s)
-        diamond(px + pw / 2, top + h - 17 * s, 4 * s)
+        lineTo(cx + halfW - 34 * s, cy - halfH)
+        cubicTo(
+            cx + halfW - 14 * s, cy - halfH,
+            cx + halfW - 10 * s, cy - halfH * 0.55f,
+            cx + halfW, cy,
+        )
+        cubicTo(
+            cx + halfW - 10 * s, cy + halfH * 0.55f,
+            cx + halfW - 14 * s, cy + halfH,
+            cx + halfW - 34 * s, cy + halfH,
+        )
+        lineTo(cx - halfW + 34 * s, cy + halfH)
+        cubicTo(
+            cx - halfW + 14 * s, cy + halfH,
+            cx - halfW + 10 * s, cy + halfH * 0.55f,
+            cx - halfW, cy,
+        )
+        close()
     }
 
-    // name text
+    val shadow = cartouchePath(cw, ch)
+    drawPath(shadow, frameColors.headerFill)
+    drawPath(shadow, frameColors.headerBorder, style = Stroke(2.2f * s))
+    drawPath(
+        cartouchePath(cw * 0.92f, ch * 0.78f),
+        frameColors.headerBorder.copy(alpha = 0.55f),
+        style = Stroke(0.9f * s),
+    )
+    drawCircle(frameColors.headerBorder, 3 * s, Offset(cx - cw, cy))
+    drawCircle(frameColors.headerBorder, 3 * s, Offset(cx + cw, cy))
+
+    // ٤) الاسم جوّه الكارتوث
+    drawText(
+        banner.layout,
+        topLeft = Offset(
+            cx - banner.layout.size.width / 2f,
+            cy - banner.layout.size.height / 2f,
+        ),
+    )
+
+    // ٥) لوحتان على الجانبين: عدد الآيات شمالًا («١٧٦ آية») ورقم السورة يمينًا —
+    // مكان لوحة النزول في الأصل. الوصلة بين اللوحة والكارتوث قصيرة (١٠s)، فالشريط
+    // بيقرأ كقطعة واحدة متواصلة.
+    val panelHalf = (w - 2 * cw - 48 * s) / 2f
+    val panelTop = top + 17 * s
+    val panelBottom = top + h - 17 * s
+    if (panelHalf > 18 * s) {
+        fun panel(left: Float, value: TextLayoutResult?) {
+            drawRoundRect(
+                color = frameColors.frameBand,
+                topLeft = Offset(left, panelTop),
+                size = Size(panelHalf, panelBottom - panelTop),
+                cornerRadius = CornerRadius(6 * s),
+            )
+            drawRoundRect(
+                color = frameColors.frameLine,
+                topLeft = Offset(left, panelTop),
+                size = Size(panelHalf, panelBottom - panelTop),
+                cornerRadius = CornerRadius(6 * s),
+                style = Stroke(1.2f * s),
+            )
+            diamond(left + panelHalf / 2, panelTop, 4 * s, frameColors.frameLine)
+            diamond(left + panelHalf / 2, panelBottom, 4 * s, frameColors.frameLine)
+            value?.let {
+                drawText(
+                    it,
+                    topLeft = Offset(
+                        left + panelHalf / 2 - it.size.width / 2f,
+                        (panelTop + panelBottom) / 2f - it.size.height / 2f,
+                    ),
+                )
+            }
+        }
+
+        val leftPanel = 14 * s
+        val rightPanel = w - 14 * s - panelHalf
+        val rule = frameColors.frameLine.copy(alpha = 0.45f)
+        drawLine(rule, Offset(leftPanel + panelHalf, cy), Offset(cx - cw, cy), 1f * s)
+        drawLine(rule, Offset(cx + cw, cy), Offset(rightPanel, cy), 1f * s)
+
+        panel(leftPanel, banner.countLayout)
+        panel(rightPanel, banner.orderLayout)
+    }
+}
+
+/** الترويسة الحديثة: حبة بعرض عمود النص. */
+internal fun DrawScope.drawModernSurahHeader(
+    banner: DrawnBanner,
+    colors: MushafColors,
+    frameColors: MushafFrameColors = MushafFrameColors.of(SurahHeaderStyle.MODERN, colors),
+) {
+    val w = banner.width
+    val radius = CornerRadius(banner.boxHeight / 2f)
+    drawRoundRect(
+        color = frameColors.headerFill,
+        topLeft = Offset(0f, banner.boxTop),
+        size = Size(w, banner.boxHeight),
+        cornerRadius = radius,
+    )
     drawText(banner.layout, topLeft = Offset(banner.textLeft, banner.textTop))
 }

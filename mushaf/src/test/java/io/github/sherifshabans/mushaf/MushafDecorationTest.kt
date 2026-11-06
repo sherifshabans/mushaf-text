@@ -1,0 +1,197 @@
+package io.github.sherifshabans.mushaf
+
+import android.app.Application
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import androidx.activity.ComponentActivity
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.unit.dp
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
+
+/** الإطار بيحدّد منطقة النص — أي خطأ في الحسبة بيرجّع النص فوق الإطار تاني. */
+class MushafFrameGeometryTest {
+
+    @Test
+    fun ayahCountLabelPluralisesLikeArabic() {
+        assertEquals("آية واحدة", ayahCountLabel(1))
+        assertEquals("آيتان", ayahCountLabel(2))
+        assertEquals("٣ آيات", ayahCountLabel(3))
+        assertEquals("٧ آيات", ayahCountLabel(7))
+        assertEquals("١٠ آيات", ayahCountLabel(10))
+        assertEquals("١١ آية", ayahCountLabel(11))
+        assertEquals("١٠٠ آية", ayahCountLabel(100))
+        assertEquals("٢٨٦ آية", ayahCountLabel(286))
+    }
+
+    @Test
+    fun everySurahHasALabel() {
+        for (surah in Quran.surahs) {
+            assertTrue("surah ${surah.number}", ayahCountLabel(surah.ayahCount).contains("آي"))
+        }
+    }
+
+    @Test
+    fun contentRectAlwaysSitsInsideTheInnerRule() {
+        for (page in 1..604) {
+            for ((width, height) in listOf(1080f to 1920f, 1080f to 2340f, 1440f to 2560f)) {
+                for (unit in listOf(1f, 2f, 2.625f, 3f, 4f)) {
+                    val g = ornateFrameGeometry(width, height, page, unit)
+                    val where = "page $page, ${width}x$height @$unit"
+                    assertTrue(where, g.contentLeft >= g.innerLeft)
+                    assertTrue(where, g.contentTop >= g.innerTop)
+                    assertTrue(where, g.contentLeft + g.contentWidth <= g.innerRight)
+                    assertTrue(where, g.contentTop + g.contentHeight <= g.innerBottom)
+                    assertTrue(where, g.contentWidth > 0f)
+                    assertTrue(where, g.contentHeight > 0f)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun theWideBandAndTheRopeSwapSidesWithPageParity() {
+        val odd = ornateFrameGeometry(1000f, 2000f, 77, 1f)
+        val even = ornateFrameGeometry(1000f, 2000f, 78, 1f)
+        assertTrue(odd.rightPage)
+        assertTrue("odd page: wide band on the right", odd.bandRight > odd.bandLeft)
+        assertTrue("even page: wide band on the left", even.bandLeft > even.bandRight)
+    }
+}
+
+/**
+ * يرسم صفحات مزخرفة وينظر في البكسل: الحبر ما ينفعش يوصل لشريط الإطار.
+ * ده اللي كان بيحصل قبل ما النص يتخطّط جوّه `MushafFrameGeometry`.
+ */
+@RunWith(RobolectricTestRunner::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@Config(sdk = [34], application = Application::class, qualifiers = "w411dp-h914dp-420dpi")
+class MushafDecorationRenderTest {
+
+    @get:Rule
+    val rule = createAndroidComposeRule<ComponentActivity>()
+
+    private val pageWidth = 411.dp
+    private val pageHeight = 830.dp
+
+    private val shownPage = mutableStateOf(2)
+    private val decoration = mutableStateOf(MushafDecoration.Classic)
+    private val selected = mutableStateOf(false)
+    private var contentSet = false
+
+    /** `setContent` بيتنادى مرة واحدة بس في اختبار Compose، فبنغيّر الحالة. */
+    private fun content() {
+        if (contentSet) return
+        contentSet = true
+        rule.setContent {
+            Box(Modifier.size(pageWidth, pageHeight).background(MushafColors.Light.paper)) {
+                MushafPage(
+                    ayahs = TestData.ayahs.filter { it.page == shownPage.value },
+                    modifier = Modifier.size(pageWidth, pageHeight),
+                    colors = MushafColors.Light,
+                    decoration = decoration.value,
+                    selectedAyahIds = if (selected.value) {
+                        setOf(TestData.ayahs.first { it.page == shownPage.value }.id)
+                    } else emptySet(),
+                    contentPadding = PaddingValues(0.dp),
+                )
+            }
+        }
+    }
+
+    private fun shot(
+        decoration: MushafDecoration,
+        page: Int = 2,
+        selected: Boolean = false,
+    ): Bitmap {
+        content()
+        rule.runOnUiThread {
+            shownPage.value = page
+            this.selected.value = selected
+            this.decoration.value = decoration
+        }
+        rule.waitForIdle()
+        val view = rule.activity.window.decorView
+        val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+        rule.runOnUiThread { view.draw(Canvas(bitmap)) }
+        return bitmap
+    }
+
+    private fun isInk(pixel: Int): Boolean {
+        val r = (pixel shr 16) and 0xFF
+        val g = (pixel shr 8) and 0xFF
+        val b = pixel and 0xFF
+        return r < 90 && g < 90 && b < 90
+    }
+
+    @Test
+    fun textAndBannerNeverInvadeTheFrameBand() {
+        // 2: banner + basmala at the top. 76: banner at the bottom. 604: three
+        // banners with the longest names, all inside a 15-line page.
+        for (page in listOf(2, 76, 604)) {
+            val bitmap = shot(MushafDecoration.Classic, page = page)
+            val density = rule.activity.resources.displayMetrics.density
+            val g = ornateFrameGeometry(
+                bitmap.width.toFloat(), bitmap.height.toFloat(), page, density
+            )
+            val px = IntArray(bitmap.width * bitmap.height)
+            bitmap.getPixels(px, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
+
+            fun inkBetween(x0: Int, x1: Int, y0: Int, y1: Int): Int {
+                var hits = 0
+                for (y in y0.coerceAtLeast(0)..y1.coerceAtMost(bitmap.height - 1)) {
+                    for (x in x0.coerceAtLeast(0)..x1.coerceAtMost(bitmap.width - 1)) {
+                        if (isInk(px[y * bitmap.width + x])) hits++
+                    }
+                }
+                return hits
+            }
+
+            val top = (g.frameTop + 2).toInt()
+            val bottom = (g.frameBottom - 2).toInt()
+            val left = (g.frameLeft + 2).toInt()
+            val innerLeft = (g.innerLeft - 2).toInt()
+            val innerRight = (g.innerRight + 2).toInt()
+            val right = (g.frameRight - 2).toInt()
+
+            assertEquals("page $page: ink left of the inner rule", 0, inkBetween(left, innerLeft, top, bottom))
+            assertEquals("page $page: ink right of the inner rule", 0, inkBetween(innerRight, right, top, bottom))
+
+            // النص موجود فعلًا جوّه الإطار — الاختبار مش بيمرّ على صفحة فاضية.
+            val inside = inkBetween(
+                (g.contentLeft + 4).toInt(), (g.contentLeft + g.contentWidth - 4).toInt(),
+                (g.contentTop + 4).toInt(), (g.contentTop + g.contentHeight - 4).toInt(),
+            )
+            assertTrue("page $page: expected text inside the frame, found none", inside > 500)
+        }
+    }
+
+    @Test
+    fun ayahFrameActuallyDrawsAroundTheHighlightedAyah() {
+        val without = shot(MushafDecoration.Classic.copy(ayahFrame = false), selected = true)
+        val with = shot(MushafDecoration.Classic.copy(ayahFrame = true), selected = true)
+        assertEquals(without.width, with.width)
+        assertEquals(without.height, with.height)
+
+        val a = IntArray(without.width * without.height)
+        val b = IntArray(with.width * with.height)
+        without.getPixels(a, 0, without.width, 0, 0, without.width, without.height)
+        with.getPixels(b, 0, with.width, 0, 0, with.width, with.height)
+
+        var changed = 0
+        for (i in a.indices) if (a[i] != b[i]) changed++
+        assertTrue("ayahFrame changed nothing — it is still a no-op", changed > 200)
+    }
+}
