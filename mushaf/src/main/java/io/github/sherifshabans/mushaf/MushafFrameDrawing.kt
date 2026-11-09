@@ -39,6 +39,26 @@ private const val BAND_OUTER = 12f
 private const val BAND_THIN = 6f
 
 /**
+ * نصف قطر وردة رقم الصفحة بوحدات الإطار (dp)، ونسبة القرص الداخلي إليها.
+ * القرص = نجمة `0.74` من نصف القطر، ثم دائرة `0.92` من النجمة.
+ * [pageNumberDiskDiameter] والرسم بيستخدموا نفس الرقمين.
+ */
+internal const val PAGE_MEDALLION_RADIUS = 16f
+internal const val PAGE_MEDALLION_STAR_FACTOR = 0.74f
+internal const val PAGE_MEDALLION_DISK_FACTOR = 0.92f
+
+/** قطر القرص الداخلي لوردة رقم الصفحة بالبكسل، وهو صندوق الحبر الأقصى للرقم. */
+internal fun pageNumberDiskDiameter(unit: Float): Float =
+    2f * PAGE_MEDALLION_RADIUS * PAGE_MEDALLION_STAR_FACTOR * PAGE_MEDALLION_DISK_FACTOR * unit
+
+/** رقم الصفحة مقيس على حبر الأرقام، مش على صندوق السطر (خط الأرقام أطول من الحبر). */
+internal class PageNumberLabel(
+    val layout: TextLayoutResult,
+    val inkCenterX: Float,
+    val inkCenterY: Float,
+)
+
+/**
  * أبعاد إطار الصفحة بالبكسل، وحدود منطقة النص اللي جوّاه.
  *
  * [contentLeft]/[contentTop] هما أصل الرسم للمحتوى: كل حاجة بتترسم عند 0 بتفضل
@@ -123,7 +143,7 @@ internal fun DrawScope.drawOrnatePageFrame(
     colors: MushafColors,
     style: SurahHeaderStyle,
     pageNumber: Int,
-    pageNumberLayout: TextLayoutResult? = null,
+    pageNumberLabel: PageNumberLabel? = null,
 ) {
     val frameColors = MushafFrameColors.of(style, colors)
     val unit = geometry.unit
@@ -207,8 +227,11 @@ internal fun DrawScope.drawOrnatePageFrame(
         Offset(innerLeft, innerBottom), Offset(innerRight, innerBottom),
     ).forEach { c -> diamond(c.x, c.y, 3.2f * unit, frameColors.frameLine) }
 
-    // page-number rosette, on the bottom border at the outer corner
-    val medallionR = 16f * unit
+    // page-number rosette, on the bottom border at the outer corner.
+    // The number is centered on its ink, not the line box: the sans face used
+    // for digits has a tall em (Arabic marks) and the glyphs would otherwise
+    // sit small, or drift, inside the disk.
+    val medallionR = PAGE_MEDALLION_RADIUS * unit
     val pnX = if (rightPage) frameRight - 30 * unit else frameLeft + 30 * unit
     drawRosette(
         cx = pnX,
@@ -218,10 +241,10 @@ internal fun DrawScope.drawOrnatePageFrame(
         line = frameColors.frameLine,
         unit = unit,
     )
-    pageNumberLayout?.let {
+    pageNumberLabel?.let { label ->
         drawText(
-            it,
-            topLeft = Offset(pnX - it.size.width / 2f, frameBottom - it.size.height / 2f),
+            label.layout,
+            topLeft = Offset(pnX - label.inkCenterX, frameBottom - label.inkCenterY),
         )
     }
 }
@@ -235,7 +258,7 @@ private fun DrawScope.drawRosette(
     line: Color,
     unit: Float,
 ) {
-    val star = r * 0.74f
+    val star = r * PAGE_MEDALLION_STAR_FACTOR
     val path = Path().apply {
         fillType = PathFillType.NonZero
         for (i in 0 until 16) {
@@ -250,8 +273,9 @@ private fun DrawScope.drawRosette(
     drawPath(path, fill)
     drawPath(path, line, style = Stroke(1.3f * unit))
 
-    drawCircle(fill, star * 0.92f, Offset(cx, cy))
-    drawCircle(line, star * 0.92f, Offset(cx, cy), style = Stroke(0.9f * unit))
+    val disk = star * PAGE_MEDALLION_DISK_FACTOR
+    drawCircle(fill, disk, Offset(cx, cy))
+    drawCircle(line, disk, Offset(cx, cy), style = Stroke(0.9f * unit))
 }
 
 /**

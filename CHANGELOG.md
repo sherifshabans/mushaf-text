@@ -1,7 +1,16 @@
 # Release notes
 
-## Unreleased — page margins & header panels
+## Unreleased — page margins, header panels, page number
 
+- **Page number in the frame medallion:** was a hardcoded `0.34 ×` the ayah font
+  (about **6–9 sp** on a phone), so the digits sat small inside the rosette.
+  The number is now fitted to the ornament. `MushafDecoration.pageNumberScale`
+  (default **0.72**, also `DEFAULT_PAGE_NUMBER_SCALE`) is the fraction of the
+  inner disk the digit ink fills. With Android's Arabic sans digits that is
+  about **23 sp** for a one-digit page and about **13 sp** for a three-digit
+  page — clearly larger, still inside the ring. Ayah text, surah headers, and
+  the frame geometry are unchanged. `1` fills the disk; values are clamped to
+  `0.05..1`.
 - **Page number:** host apps that drew their own footer under `MushafPage` while
   `pageFrame` was on saw the number twice (footer + frame medallion). The medallion
   remains the single source when the frame is on; hosts should hide any extra footer.

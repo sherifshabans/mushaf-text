@@ -14,6 +14,8 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import android.graphics.Paint
+import android.graphics.Typeface
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.RoundRect
@@ -412,8 +414,8 @@ private class PageDrawing(
     val verses: List<DrawnVerseLine>,
     val banners: List<DrawnBanner>,
     val basmalas: List<DrawnText>,
-    /** رقم الصفحة بأرقام عربية، مقيس لميدالية الإطار. */
-    val pageNumberLayout: TextLayoutResult?,
+    /** رقم الصفحة بأرقام عربية، مقيس على قرص ميدالية الإطار. */
+    val pageNumberLabel: PageNumberLabel?,
 )
 
 private class PageLayout(
@@ -609,10 +611,18 @@ private fun MushafPageBody(
         val contentTop = frame?.contentTop ?: 0f
         val contentWidth = frame?.contentWidth ?: widthPx
         val contentHeight = frame?.contentHeight ?: heightPx
+        // رقم الصفحة بيتقاس على قرص الوردة مش على خط الآيات، فالصفحات الضيقة
+        // والواسعة بتاخد نفس الرقم المقروء. المقياس ١ بيملى القرص.
+        val pageNumberFraction = decoration.pageNumberScale
+            .takeIf { it.isFinite() }
+            ?.coerceIn(0.05f, 1f)
+            ?: DEFAULT_PAGE_NUMBER_SCALE
+        val pageNumberUnit = frame?.unit ?: 1f
+        val pageNumberMaxInk = frame?.let { pageNumberDiskDiameter(it.unit) * pageNumberFraction }
 
         val drawing = remember(
             tokens, contentWidth, contentHeight, maxFontSize, reference, tajweedByAyah,
-            colors, decoration, pageNumber
+            colors, decoration, pageNumber, pageNumberMaxInk, pageNumberUnit
         ) {
             val layout = reference
                 ?.let {
@@ -633,7 +643,9 @@ private fun MushafPageBody(
                 colors = colors,
                 tajweedByAyah = tajweedByAyah,
                 decoration = decoration,
-                pageNumber = pageNumber
+                pageNumber = pageNumber,
+                pageNumberMaxInk = pageNumberMaxInk,
+                pageNumberUnit = pageNumberUnit,
             )
         }
 
@@ -672,7 +684,7 @@ private fun MushafPageBody(
                     colors = colors,
                     style = decoration.surahHeaderStyle,
                     pageNumber = pageNumber ?: 1,
-                    pageNumberLayout = drawing.pageNumberLayout,
+                    pageNumberLabel = drawing.pageNumberLabel,
                 )
             }
 
@@ -861,7 +873,9 @@ private fun buildPageDrawing(
     colors: MushafColors,
     tajweedByAyah: Map<Int, List<TajweedSpan>>,
     decoration: MushafDecoration,
-    pageNumber: Int?
+    pageNumber: Int?,
+    pageNumberMaxInk: Float?,
+    pageNumberUnit: Float,
 ): PageDrawing {
     val style = mushafTextStyle(layout.fontSize, colors.ink)
     val markerStyle = style.copy(color = colors.marker)
@@ -875,11 +889,15 @@ private fun buildPageDrawing(
         SurahHeaderStyle.PLAIN -> colors.bannerText
     }
 
-    val pageNumberLayout = pageNumber?.let {
-        measurer.measure(
-            AnnotatedString(toArabicDigits(it)),
-            labelTextStyle(layout.fontSize * 0.34f, colors.marker)
+    val pageNumberLabel = if (pageNumber != null && pageNumberMaxInk != null && pageNumberMaxInk > 0f) {
+        measurer.measurePageNumber(
+            text = toArabicDigits(pageNumber),
+            color = colors.marker,
+            maxInkPx = pageNumberMaxInk,
+            unit = pageNumberUnit,
         )
+    } else {
+        null
     }
 
     val pitch: Float
@@ -1018,7 +1036,85 @@ private fun buildPageDrawing(
             }
         }
     }
-    return PageDrawing(verses, banners, basmalas, pageNumberLayout)
+    return PageDrawing(verses, banners, basmalas, pageNumberLabel)
+}
+
+/**
+ * حجم خط رقم الصفحة بحيث حبر الأرقام (مش صندوق السطر) يملأ [maxInkPx].
+ * [inkWidth] و[inkHeight] مقاسان عند [referenceSize].
+ */
+internal fun fittedPageNumberFontSize(
+    inkWidth: Float,
+    inkHeight: Float,
+    maxInkPx: Float,
+    referenceSize: Float = 100f,
+): Float {
+    val w = inkWidth.coerceAtLeast(1e-3f)
+    val h = inkHeight.coerceAtLeast(1e-3f)
+    return referenceSize * min(maxInkPx / w, maxInkPx / h)
+}
+
+/**
+ * يقيس رقم الصفحة على خط عادي (خط المصحف بيحول الأرقام لوردة).
+ *
+ * صندوق السطر أطول من الحبر بكتير — أرقام عربية في خط الـsans بارتفاع
+ * ~٠٫٧ من الـem جوا سطر ~٢٫١ — فلو كبّرنا الصندوق لحد القرص الرقم نفسه
+ * يفضل صغير. فبنقيس حبر `Paint.getTextBounds` ونكبّره لحد القرص، ونتمركز
+ * على الحبر مش على الصندوق.
+ *
+ * [unit] هو كثافة الشاشة: `sp` في الصفحة = `px / unit` لأن مقياس خط النظام متثبّت على ١.
+ */
+private fun TextMeasurer.measurePageNumber(
+    text: String,
+    color: Color,
+    maxInkPx: Float,
+    unit: Float,
+): PageNumberLabel {
+    val density = unit.coerceAtLeast(1e-3f)
+    val referencePx = 100f
+    var tight = tightDigitBounds(text, referencePx)
+    var fontSizePx = if (tight.width() > 0 && tight.height() > 0) {
+        fittedPageNumberFontSize(
+            inkWidth = tight.width().toFloat(),
+            inkHeight = tight.height().toFloat(),
+            maxInkPx = maxInkPx,
+            referenceSize = referencePx,
+        )
+    } else {
+        maxInkPx * 0.5f
+    }
+    var layout = measure(AnnotatedString(text), labelTextStyle(fontSizePx / density, color))
+    tight = tightDigitBounds(text, fontSizePx)
+    val inkW = tight.width().toFloat()
+    val inkH = tight.height().toFloat()
+    if (inkW > maxInkPx || inkH > maxInkPx) {
+        fontSizePx *= min(
+            maxInkPx / inkW.coerceAtLeast(1f),
+            maxInkPx / inkH.coerceAtLeast(1f),
+        )
+        layout = measure(AnnotatedString(text), labelTextStyle(fontSizePx / density, color))
+        tight = tightDigitBounds(text, fontSizePx)
+    }
+    // أفقيًا الفقرة غير محدودة العرض، فصندوقها هو عرض الأرقام ومركزه مركز الحبر.
+    // (اتجاه RTL بيخلّي موضع أول حرف على الحافة التانية، فمش بنستخدمه.)
+    // رأسيًا الصندوق أطول من الحبر بكتير، فنتمركز على حدود الحبر من خط الأساس.
+    val baseline = layout.getLineBaseline(0)
+    return PageNumberLabel(
+        layout = layout,
+        inkCenterX = layout.size.width / 2f,
+        inkCenterY = baseline + (tight.top + tight.bottom) / 2f,
+    )
+}
+
+/** حبر الأرقام الحقيقي. `textSize` بالبكسل، والأصل عند خط الأساس. */
+private fun tightDigitBounds(text: String, textSizePx: Float): android.graphics.Rect {
+    val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        typeface = Typeface.SANS_SERIF
+        textSize = textSizePx
+    }
+    val bounds = android.graphics.Rect()
+    paint.getTextBounds(text, 0, text.length, bounds)
+    return bounds
 }
 
 /** كلمات السطر من اليمين لليسار، والفراغ الزايد بيتوزّع بالتساوي على المسافات. */

@@ -184,7 +184,13 @@ the glyphs, and joins the frame across the lines of a multi-line ayah so it read
 **`pageFrame` owns the text area.** `MushafFrameGeometry` is the single source of truth: the
 drawing uses it and the layout is inset by `content*`, so lines never cross the frame or the rope
 of beads — and you never have to add padding yourself. The palette follows `MushafColors`, so
-`MushafColors.Dark` gets a lifted gold and a dark field with no extra work:
+`MushafColors.Dark` gets a lifted gold and a dark field with no extra work.
+
+The page number is drawn in the rosette on the bottom border. `pageNumberScale` (default
+`0.72`) is how much of that medallion's inner disk the digits fill — about 23 sp for a
+one-digit page and about 13 sp for a three-digit page. It used to be `0.34` times the ayah
+font (about 6–9 sp). Ayah text and surah headers are unchanged. Set `pageNumberScale = 1f`
+to fill the disk.
 
 ![](docs/styles/dark.png)
 
@@ -516,7 +522,12 @@ MushafDecoration.Classic.copy(
 **`pageFrame` هو اللي بيحدّد منطقة النص.** أبعاد الإطار (`MushafFrameGeometry`) هي المصدر
 الواحد: الرسم بيستخدمها والنص بيتخطّط جوّه `content*` بتاعتها، فالسطور ما تعدّيـش فوق الإطار
 ولا حبل الخرز، ومحتاجش تضيف `padding` بنفسك. والألوان بتتبع `MushafColors`، فالوضع الليلي
-(`MushafColors.Dark`) بياخد ذهبًا أفتح وحقلًا غامقًا بدون ما تعدّل حاجة:
+(`MushafColors.Dark`) بياخد ذهبًا أفتح وحقلًا غامقًا بدون ما تعدّل حاجة.
+
+رقم الصفحة بيترسم جوّه وردة الحافة السفلية. `pageNumberScale` (الافتراضي `0.72`) هو نسبة
+قرص الوردة اللي بيملاها حبر الرقم — حوالي ٢٣sp لصفحة برقم خانة، وحوالي ١٣sp لصفحة بثلاث
+خانات. قبل كده كان `0.34` من خط الآيات (حوالي ٦–٩sp). نص الآيات وترويسة السورة زي ما هما.
+`pageNumberScale = 1f` يملأ القرص.
 
 ![](docs/styles/dark.png)
 

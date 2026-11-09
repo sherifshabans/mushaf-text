@@ -32,6 +32,18 @@ data class SurahHeaderOverride(
 )
 
 /**
+ * Default [MushafDecoration.pageNumberScale].
+ *
+ * The page number used to be `0.34 ×` the ayah font (about 6–9 sp on a phone),
+ * so the digits sat in the middle of the rosette with a wide empty ring.
+ * `0.72` means the glyph ink fills 72% of the medallion's inner disk: about
+ * **23 sp** for a one-digit page and about **13 sp** for a three-digit page
+ * with Android's Arabic sans digits. A three-digit number is the one that
+ * binds, and it still clears the ring.
+ */
+const val DEFAULT_PAGE_NUMBER_SCALE = 0.72f
+
+/**
  * Decorative options for a mushaf page.
  *
  * @param pageFrame draw an ornamental double-line frame around the page. The frame
@@ -50,6 +62,11 @@ data class SurahHeaderOverride(
  * @param frameTopMargin top margin of the frame. Default 1.5 (was 2).
  * @param frameBottomMargin bottom margin; leave room for the page-number medallion.
  *   Default 14 (was 19).
+ * @param pageNumberScale how much of the medallion's inner disk the page-number
+ *   ink fills (`1` touches the ring). Default [DEFAULT_PAGE_NUMBER_SCALE] (0.72).
+ *   Previously the number was a hardcoded `0.34 ×` the ayah font, which left the
+ *   digits small inside the rosette. The frame, ayah text, and surah headers are
+ *   not affected. Values are clamped to `0.05..1`.
  */
 @Immutable
 data class MushafDecoration(
@@ -66,6 +83,12 @@ data class MushafDecoration(
     val frameInnerMargin: Float = 2f,
     val frameTopMargin: Float = 1.5f,
     val frameBottomMargin: Float = 14f,
+    /**
+     * Fraction of the page-number medallion's inner disk filled by the digit ink.
+     * `1` fills the disk; the number is shrunk (a 3-digit page more than a 1-digit
+     * page) so it never crosses the ring. See [DEFAULT_PAGE_NUMBER_SCALE].
+     */
+    val pageNumberScale: Float = DEFAULT_PAGE_NUMBER_SCALE,
 ) {
     companion object {
         val None = MushafDecoration()

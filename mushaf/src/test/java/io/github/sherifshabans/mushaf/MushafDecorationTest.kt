@@ -62,6 +62,36 @@ class MushafFrameGeometryTest {
     }
 
     @Test
+    fun pageNumberFillsTheMedallionInsteadOfTrackingTheAyahFont() {
+        // Inner disk of the rosette: 2 * 16 * 0.74 * 0.92 ≈ 21.8dp.
+        val disk = pageNumberDiskDiameter(1f)
+        assertEquals(2f * 16f * 0.74f * 0.92f, disk, 0.001f)
+        assertEquals(0.72f, DEFAULT_PAGE_NUMBER_SCALE, 0.0001f)
+        assertEquals(DEFAULT_PAGE_NUMBER_SCALE, MushafDecoration().pageNumberScale, 0.0001f)
+
+        val maxInk = disk * DEFAULT_PAGE_NUMBER_SCALE
+        // Tight ink of Arabic-Indic digits in Noto Sans Arabic at a 100px face
+        // (the usual Android sans fallback): "٢" and "٦٠٤".
+        val oneDigit = fittedPageNumberFontSize(40.6f, 68.5f, maxInk)
+        val threeDigit = fittedPageNumberFontSize(124.7f, 68.7f, maxInk)
+        // Old size was 0.34 × the ayah font: ~6.8sp on a 20sp page, ~8.8sp on a 26sp page.
+        val oldOnFullPage = 20f * 0.34f
+        val oldOnOpeningPage = 26f * 0.34f
+        assertTrue(
+            "one digit $oneDigit sp should be clearly larger than $oldOnOpeningPage",
+            oneDigit > oldOnOpeningPage * 2f,
+        )
+        assertTrue(
+            "three digits $threeDigit sp should be larger than $oldOnFullPage",
+            threeDigit > oldOnFullPage * 1.5f,
+        )
+        // The binding edge of the ink lands on the disk, not past it.
+        assertEquals(maxInk, 68.5f * oneDigit / 100f, 0.05f)
+        assertEquals(maxInk, 124.7f * threeDigit / 100f, 0.05f)
+        assertTrue(40.6f * oneDigit / 100f < maxInk)
+    }
+
+    @Test
     fun theWideBandAndTheRopeSwapSidesWithPageParity() {
         val odd = ornateFrameGeometry(1000f, 2000f, 77, 1f)
         val even = ornateFrameGeometry(1000f, 2000f, 78, 1f)
