@@ -2,6 +2,11 @@
 
 ## Unreleased — page margins, header panels, page number
 
+- **Plan only, no runtime change:** [`docs/roadmap/next-mushaf-reader.md`](docs/roadmap/next-mushaf-reader.md)
+  specifies the next milestone (bound-book page turn, hizb / juz / rubʿ marks
+  on the frame, Cairo / Diyanet / Indo-Pak skins, and host-supplied headers
+  and frames). Nothing in that document is implemented here, and this entry
+  does not ship a version.
 - **Page number in the frame medallion:** was a hardcoded `0.34 ×` the ayah font
   (about **6–9 sp** on a phone), so the digits sat small inside the rosette.
   The number is now fitted to the ornament. `MushafDecoration.pageNumberScale`

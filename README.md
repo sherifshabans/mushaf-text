@@ -36,6 +36,11 @@ mode in which every rule carries its source.
   surah headers, and a padded frame around highlighted ayahs.
 - Fully offline: text, font and layout all ship inside the library. No network, no API.
 
+The next milestone — a bound-book page turn, hizb and juz marks on the frame,
+more printed styles, and host-supplied headers and frames — is specified in
+[`docs/roadmap/next-mushaf-reader.md`](docs/roadmap/next-mushaf-reader.md).
+That file is a plan. Those features are not in this version.
+
 ### Installation
 
 **1.** Add JitPack to `settings.gradle.kts`:
@@ -374,6 +379,11 @@ the reciter list from [mp3quran.net](https://mp3quran.net).
 - **التزيين** (`MushafDecoration`): إطار صفحة زخرفي، وترويسة سورة بثلاثة أنماط
   (`CLASSIC` / `MODERN` / `PLAIN`)، وإطار بحشوة حول الآية المظللة.
 - يعمل بلا إنترنت تمامًا: النصّ والخط والتخطيط داخل المكتبة. لا شبكة ولا API.
+
+المرحلة التالية — تقليب الصفحة كالمصحف المجلّد، وعلامات الحزب والجزء على الإطار،
+وأنماط مطبوعة إضافية، وترويسة وإطار يوفّرهما التطبيق المستضيف — موصوفة في
+[`docs/roadmap/next-mushaf-reader.md`](docs/roadmap/next-mushaf-reader.md).
+الملف خطة عمل، وهذه الميزات ليست في هذه النسخة.
 
 ### التثبيت
 
