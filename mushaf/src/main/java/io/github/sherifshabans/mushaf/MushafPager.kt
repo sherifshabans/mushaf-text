@@ -6,11 +6,13 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -75,6 +77,33 @@ private val CURL_SHADOW_WIDTH = 24.dp
 /** عتبة إتمام التقليب بالسحب — فوقها تكمل الورقة، وتحتها ترجع. */
 private const val CURL_COMMIT_THRESHOLD = 0.35f
 
+/** عرض منطقة الصفحة (dp) اللي بعده تتحطّ صفحتين جنب بعض في [MushafSpread.Auto]. */
+private val SPREAD_MIN_WIDTH = 600.dp
+
+/** صفحات واحدة لكل شاشة أو صفحتين (ازدواجية) في الشاشات العريضة. */
+enum class MushafSpread {
+    /** Always one page per screen. */
+    Single,
+
+    /**
+     * A spread when the page area is at least [SPREAD_MIN_WIDTH] wide: the odd
+     * page on the right, its even pair on the left, like the open book. Page 1
+     * shows the inside cover on its left. The pair is **static** — it does not
+     * turn like a leaf yet.
+     */
+    Auto,
+}
+
+/**
+ * ازدواجية الصفحة: الزوجية شمالًا (يسار الكتاب) والفردية يمينًا، وأول صفحة
+ * شمالها داخل الكتاب (فارغ). ٦٠٤ صفحات = ٣٠٢ ازدواجية.
+ */
+private fun spreadPair(page: Int): Pair<Int, Int?> {
+    if (page == 1) return 1 to null
+    val left = if (page % 2 == 0) page else page + 1
+    return (left - 1) to left
+}
+
 /**
  * The whole mushaf, one page per screen, turning right-to-left like a printed copy
  * (the next page comes in from the left) whatever the app's locale.
@@ -87,6 +116,9 @@ private const val CURL_COMMIT_THRESHOLD = 0.35f
  *   [PageTurn.Curl] peels one leaf the way a bound mushaf does. During a peel
  *   `state.currentPageOffsetFraction` stays `0` — it is **not** the peel
  *   progress; callers that need the fraction stay on [PageTurn.Slide].
+ * @param spread [MushafSpread.Single] (default) one page per screen;
+ *   [MushafSpread.Auto] shows the page and its pair side by side on wide
+ *   screens. `state.currentPage` keeps addressing a single mushaf page.
  */
 @Composable
 fun MushafPager(
@@ -98,6 +130,7 @@ fun MushafPager(
     decoration: MushafDecoration = MushafDecoration.None,
     showHeaders: Boolean = true,
     pageTurn: PageTurn = PageTurn.Slide,
+    spread: MushafSpread = MushafSpread.Single,
     selectedAyahIds: Set<Int> = emptySet(),
     highlightedAyahs: Map<Int, Color> = emptyMap(),
     playingAyahIds: Set<Int> = emptySet(),
@@ -111,7 +144,7 @@ fun MushafPager(
     // الإطار اللي بيملك رأس الصفحة ورقمها بيلغي الأطراف الخارجية — مهما كان
     // `showHeaders` — عشان الرقم ما يظهرش مرتين.
     val frameOwnsChrome = decoration.pageFrame && decoration.divisionMarks
-    val pageContent: @Composable (Int) -> Unit = { index ->
+    val singleContent: @Composable (Int) -> Unit = { index ->
         CompositionLocalProvider(LocalLayoutDirection provides outerDirection) {
             val page = index + 1
             val context = LocalContext.current
@@ -141,23 +174,43 @@ fun MushafPager(
     }
     // الصفحة الجاية تيجي من الشمال زي المصحف المطبوع، مهما كانت لغة التطبيق.
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-        when (pageTurn) {
-            PageTurn.Slide -> HorizontalPager(
-                state = state,
-                modifier = modifier.background(colors.paper),
-                beyondViewportPageCount = 1,
-                key = { it }
-            ) { index -> pageContent(index) }
+        BoxWithConstraints(modifier.background(colors.paper)) {
+            val spreadActive = spread == MushafSpread.Auto && maxWidth >= SPREAD_MIN_WIDTH
+            val pageContent: @Composable (Int) -> Unit = { index ->
+                if (!spreadActive) {
+                    singleContent(index)
+                } else {
+                    // الزوجية: الفردية يمينًا (أول صف في RTL) والزوجية شمالًا،
+                    // وأول صفحة شمالها داخل الكتاب الفاضي.
+                    val (right, left) = spreadPair(index + 1)
+                    Row(Modifier.fillMaxSize()) {
+                        Box(Modifier.weight(1f).fillMaxHeight()) {
+                            singleContent(right - 1)
+                        }
+                        Box(Modifier.weight(1f).fillMaxHeight()) {
+                            if (left != null) singleContent(left - 1)
+                        }
+                    }
+                }
+            }
+            when (pageTurn) {
+                PageTurn.Slide -> HorizontalPager(
+                    state = state,
+                    modifier = Modifier.fillMaxSize(),
+                    beyondViewportPageCount = 1,
+                    key = { it }
+                ) { index -> pageContent(index) }
 
-            PageTurn.Curl -> CurlPager(
-                state = state,
-                colors = colors,
-                decoration = decoration,
-                pagePadding = pagePadding,
-                layoutDirection = outerDirection,
-                modifier = modifier,
-                pageContent = pageContent,
-            )
+                PageTurn.Curl -> CurlPager(
+                    state = state,
+                    colors = colors,
+                    decoration = decoration,
+                    pagePadding = pagePadding,
+                    layoutDirection = outerDirection,
+                    modifier = Modifier.fillMaxSize(),
+                    pageContent = pageContent,
+                )
+            }
         }
     }
 }
