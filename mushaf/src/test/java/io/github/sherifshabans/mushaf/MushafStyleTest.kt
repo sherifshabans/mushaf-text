@@ -257,9 +257,10 @@ class MushafStyleRenderTest {
         fun underlineHits(page: Int, line: Int): Int {
             val bitmap = shot(MushafDecoration.IndoPak, page = page)
             val density = rule.activity.resources.displayMetrics.density
+            // الارتفاع الحقيقي للصفحة هو صندوق 830dp — مش ارتفاع النافذة/الـbitmap.
             val g = PageFrames.IndoPak.geometry(
                 PageFrameRequest(
-                    widthPx = bitmap.width.toFloat(), heightPx = bitmap.height.toFloat(),
+                    widthPx = bitmap.width.toFloat(), heightPx = pageHeight.value * density,
                     pageNumber = page, density = density,
                     outerMargin = 5f, innerMargin = 2f, topMargin = 1.5f, bottomMargin = 14f,
                     textGap = 8f, divisionMarks = true,
@@ -301,7 +302,7 @@ class MushafStyleRenderTest {
                     val density = rule.activity.resources.displayMetrics.density
                     val g = preset.frame.geometry(
                         PageFrameRequest(
-                            widthPx = bitmap.width.toFloat(), heightPx = bitmap.height.toFloat(),
+                            widthPx = bitmap.width.toFloat(), heightPx = pageHeight.value * density,
                             pageNumber = page, density = density,
                             outerMargin = 5f, innerMargin = 2f, topMargin = 1.5f, bottomMargin = 14f,
                             textGap = 8f, divisionMarks = true,

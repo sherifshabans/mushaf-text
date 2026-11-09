@@ -58,6 +58,12 @@ class MushafDecorationHarness {
                 ),
                 Shot(page, "madinah", MushafDecoration.Madinah),
                 Shot(page, "madinah_dark", MushafDecoration.Madinah, dark = true),
+                Shot(page, "cairo", MushafDecoration.Cairo),
+                Shot(page, "cairo_dark", MushafDecoration.Cairo, dark = true),
+                Shot(page, "diyanet", MushafDecoration.Diyanet),
+                Shot(page, "diyanet_dark", MushafDecoration.Diyanet, dark = true),
+                Shot(page, "indopak", MushafDecoration.IndoPak),
+                Shot(page, "indopak_dark", MushafDecoration.IndoPak, dark = true),
                 Shot(page, "classic_hl", MushafDecoration.Classic, highlighted = true),
                 Shot(page, "classic_dark", MushafDecoration.Classic, highlighted = true, dark = true),
             )
