@@ -2,11 +2,14 @@ package io.github.sherifshabans.mushaf
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -14,6 +17,7 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import android.graphics.Paint
 import android.graphics.Typeface
 import androidx.compose.ui.geometry.CornerRadius
@@ -39,11 +43,13 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 /*
  * راندرر صفحة المصحف — بيرسم الصفحة زي المطبوع: عدد سطور ثابت، كل سطر ممدود
@@ -72,6 +78,9 @@ private const val CENTERED_LINE_SPACING = 1.9f
 
 private const val BANNER_INSET = 0.08f
 private const val BANNER_HEIGHT = 0.84f
+
+/** حجم خط رأس الصفحة المطبوع داخل شريطه (sp). */
+private const val RUNNING_HEAD_FONT_SIZE = 12f
 
 /** حشوة تظليل الآية: أفقية تخلّي النص ما يلمسش الحافة، ورأسية تفصل الآيات. */
 private const val AYAH_PAD_X_DP = 2f
@@ -406,6 +415,8 @@ internal class DrawnBanner(
     val countCaptionLayout: TextLayoutResult?,
     /** قيمة لوحة العدد (مثل «١٧٦ آية» / «٧ آيات»). */
     val countLayout: TextLayoutResult?,
+    /** رقم السورة بأرقام شرقية (U+06F0) لترويسة IndoPak — غير مقيس لغيرها. */
+    val surahNumberLayout: TextLayoutResult? = null,
 )
 
 private class DrawnText(val layout: TextLayoutResult, val left: Float, val top: Float)
@@ -415,7 +426,14 @@ private class PageDrawing(
     val banners: List<DrawnBanner>,
     val basmalas: List<DrawnText>,
     /** رقم الصفحة بأرقام عربية، مقيس على قرص ميدالية الإطار. */
-    val pageNumberLabel: PageNumberLabel?,
+    val pageNumberLabel: FittedLabel?,
+    /** وردات علامات الأقسام في إحداثيات المحتوى (قبل إزاحة `contentTop`). */
+    val markAnchors: List<MarkAnchor> = emptyList(),
+    /** رأس الصفحة المطبوع — نصّه وقياسه. */
+    val runningSurah: String? = null,
+    val runningJuzLabel: String? = null,
+    val runningSurahLayout: TextLayoutResult? = null,
+    val runningJuzLayout: TextLayoutResult? = null,
 )
 
 private class PageLayout(
@@ -579,8 +597,11 @@ private fun MushafPageBody(
 
         // الإطار بيحسب حدوده مرة واحدة، والنص بيتخطّط جوّه `content*` بتاعته.
         // ده اللي بيمنع السطور إنها تعدّي فوق الإطار وحبل الخرز.
-        val frame = remember(
+        // الأبعاد بتيجي من `PageFrame` نفسه — أي إطار مخصّص بيملك منطقة النص.
+        val frameGeometry = remember(
             decoration.pageFrame,
+            decoration.frame,
+            decoration.divisionMarks,
             decoration.textGap,
             decoration.frameOuterMargin,
             decoration.frameInnerMargin,
@@ -592,33 +613,36 @@ private fun MushafPageBody(
             density.density,
         ) {
             if (decoration.pageFrame) {
-                ornateFrameGeometry(
-                    width = widthPx,
-                    height = heightPx,
-                    pageNumber = pageNumber ?: 1,
-                    unit = density.density,
-                    outerMargin = decoration.frameOuterMargin,
-                    innerMargin = decoration.frameInnerMargin,
-                    topMargin = decoration.frameTopMargin,
-                    bottomMargin = decoration.frameBottomMargin,
-                    textGap = decoration.textGap,
+                decoration.frame.geometry(
+                    PageFrameRequest(
+                        widthPx = widthPx,
+                        heightPx = heightPx,
+                        pageNumber = pageNumber ?: 1,
+                        density = density.density,
+                        outerMargin = decoration.frameOuterMargin,
+                        innerMargin = decoration.frameInnerMargin,
+                        topMargin = decoration.frameTopMargin,
+                        bottomMargin = decoration.frameBottomMargin,
+                        textGap = decoration.textGap,
+                        divisionMarks = decoration.divisionMarks,
+                    )
                 )
             } else {
                 null
             }
         }
-        val contentLeft = frame?.contentLeft ?: 0f
-        val contentTop = frame?.contentTop ?: 0f
-        val contentWidth = frame?.contentWidth ?: widthPx
-        val contentHeight = frame?.contentHeight ?: heightPx
+        val contentLeft = frameGeometry?.contentLeft ?: 0f
+        val contentTop = frameGeometry?.contentTop ?: 0f
+        val contentWidth = frameGeometry?.contentWidth ?: widthPx
+        val contentHeight = frameGeometry?.contentHeight ?: heightPx
         // رقم الصفحة بيتقاس على قرص الوردة مش على خط الآيات، فالصفحات الضيقة
         // والواسعة بتاخد نفس الرقم المقروء. المقياس ١ بيملى القرص.
         val pageNumberFraction = decoration.pageNumberScale
             .takeIf { it.isFinite() }
             ?.coerceIn(0.05f, 1f)
             ?: DEFAULT_PAGE_NUMBER_SCALE
-        val pageNumberUnit = frame?.unit ?: 1f
-        val pageNumberMaxInk = frame?.let { pageNumberDiskDiameter(it.unit) * pageNumberFraction }
+        val pageNumberUnit = frameGeometry?.unit ?: 1f
+        val pageNumberMaxInk = frameGeometry?.let { pageNumberDiskDiameter(it.unit) * pageNumberFraction }
 
         val drawing = remember(
             tokens, contentWidth, contentHeight, maxFontSize, reference, tajweedByAyah,
@@ -637,6 +661,7 @@ private fun MushafPageBody(
                 reference = reference,
                 // الفاتحة وأول البقرة: ثمانية سطور متوسّطة بتباعد أوسع.
                 centerLines = pageNumber != null && pageNumber <= 2,
+                ayahs = ayahs,
                 widthPx = contentWidth,
                 heightPx = contentHeight,
                 measurer = measurer,
@@ -650,6 +675,15 @@ private fun MushafPageBody(
         }
 
         val canvasHeight = with(density) { heightPx.toDp() }
+        val frameColors = MushafFrameColors.of(decoration.surahHeaderStyle, colors)
+        val lineSpans = drawing.verses.map { line ->
+            LineSpan(
+                top = contentTop + line.bandTop,
+                bottom = contentTop + line.bandBottom,
+                left = contentLeft + (line.tokens.minOfOrNull { it.left } ?: 0f),
+                right = contentLeft + (line.tokens.maxOfOrNull { it.left + it.width } ?: contentWidth),
+            )
+        }
         Canvas(
             modifier = Modifier
                 .fillMaxWidth()
@@ -676,16 +710,21 @@ private fun MushafPageBody(
                     )
                 }
         ) {
-            // ٠) إطار الصفحة إن وُجد — نسخة من الإطار الزخرفي الحالي في التطبيق
-            // (حبل من الخرز على الجانب الخارجي + ماسات + خطين + ميدالية رقم الصفحة).
-            if (frame != null) {
-                drawOrnatePageFrame(
-                    geometry = frame,
+            // ٠) إطار الصفحة إن وُجد — `PageFrame` يرسم الزخرفة وملك حدود النص.
+            if (frameGeometry != null) {
+                val frameContext = PageFrameContext(
                     colors = colors,
-                    style = decoration.surahHeaderStyle,
+                    frameColors = frameColors,
                     pageNumber = pageNumber ?: 1,
                     pageNumberLabel = drawing.pageNumberLabel,
+                    marks = drawing.markAnchors.map { it.copy(centerY = contentTop + it.centerY) },
+                    runningSurah = drawing.runningSurah,
+                    runningJuzLabel = drawing.runningJuzLabel,
+                    lineSpans = lineSpans,
+                    runningSurahLayout = drawing.runningSurahLayout,
+                    runningJuzLayout = drawing.runningJuzLayout,
                 )
+                with(decoration.frame) { draw(frameGeometry, frameContext) }
             }
 
             // كل المحتوى بيتـرسـم في إحداثيات الإطار الداخلية.
@@ -771,18 +810,28 @@ private fun MushafPageBody(
                     }
                 }
 
-                // ٢) بانرات أسماء السور.
-                drawing.banners.forEach { banner ->
-                    when (decoration.surahHeaderStyle) {
-                        SurahHeaderStyle.CLASSIC ->
-                            drawClassicSurahHeader(banner = banner, colors = colors)
-                        SurahHeaderStyle.MODERN ->
-                            drawModernSurahHeader(banner = banner, colors = colors)
-                        SurahHeaderStyle.PLAIN ->
-                            drawText(
-                                banner.layout,
-                                topLeft = Offset(banner.textLeft, banner.textTop)
-                            )
+                // ٢) بانرات أسماء السور — غير مرسومة لو في ترويسة مخصّصة فوق الكانفس.
+                if (decoration.surahHeader !is SurahHeader.Custom) {
+                    drawing.banners.forEach { banner ->
+                        when (decoration.surahHeader) {
+                            SurahHeader.Cairo ->
+                                drawCairoSurahHeader(banner = banner, colors = colors)
+                            SurahHeader.Diyanet ->
+                                drawDiyanetSurahHeader(banner = banner, colors = colors)
+                            SurahHeader.IndoPak ->
+                                drawIndoPakSurahHeader(banner = banner, colors = colors)
+                            else -> when (decoration.surahHeaderStyle) {
+                                SurahHeaderStyle.CLASSIC ->
+                                    drawClassicSurahHeader(banner = banner, colors = colors)
+                                SurahHeaderStyle.MODERN ->
+                                    drawModernSurahHeader(banner = banner, colors = colors)
+                                SurahHeaderStyle.PLAIN ->
+                                    drawText(
+                                        banner.layout,
+                                        topLeft = Offset(banner.textLeft, banner.textTop)
+                                    )
+                            }
+                        }
                     }
                 }
 
@@ -792,6 +841,36 @@ private fun MushafPageBody(
                     line.tokens.forEach { p ->
                         drawText(p.layout, topLeft = Offset(p.left, line.textTop))
                     }
+                }
+            }
+        }
+
+        // ترويسة مخصّصة من التطبيق: كومبوزابل فوق خانة البانر بالظبط، مقصوص عليها.
+        val customHeader = decoration.surahHeader as? SurahHeader.Custom
+        if (customHeader != null) {
+            drawing.banners.forEach { banner ->
+                val headerScope = SurahHeaderScope(
+                    surah = Quran.surah(banner.surahNumber),
+                    ayahCount = banner.ayahCount,
+                    revelationType = banner.revelationType,
+                    colors = colors,
+                    frameColors = frameColors,
+                )
+                Box(
+                    Modifier
+                        .offset {
+                            IntOffset(
+                                contentLeft.roundToInt(),
+                                (contentTop + banner.boxTop).roundToInt(),
+                            )
+                        }
+                        .size(
+                            with(density) { banner.width.toDp() },
+                            with(density) { banner.boxHeight.toDp() },
+                        )
+                        .clipToBounds()
+                ) {
+                    customHeader.content(headerScope)
                 }
             }
         }
@@ -867,6 +946,7 @@ private fun buildPageDrawing(
     layout: PageLayout,
     reference: MushafPageLines?,
     centerLines: Boolean,
+    ayahs: List<Ayah>,
     widthPx: Float,
     heightPx: Float,
     measurer: TextMeasurer,
@@ -883,10 +963,16 @@ private fun buildPageDrawing(
 
     // لون اسم السورة لازم يطابق اللي هيترسم عليه: كارتوث غامق في الكلاسيك،
     // فالنص فاتح. والعدد على شريط فاتح، فلونه خط الإطار الذهبي.
-    val frameColors = MushafFrameColors.of(decoration.surahHeaderStyle, colors)
-    val bannerInk = when (decoration.surahHeaderStyle) {
-        SurahHeaderStyle.CLASSIC, SurahHeaderStyle.MODERN -> frameColors.headerText
-        SurahHeaderStyle.PLAIN -> colors.bannerText
+    val headerColors = when (decoration.surahHeader) {
+        SurahHeader.Cairo -> MushafFrameColors.cairo(colors)
+        SurahHeader.Diyanet -> MushafFrameColors.diyanet(colors)
+        SurahHeader.IndoPak -> MushafFrameColors.indoPak(colors)
+        else -> MushafFrameColors.of(decoration.surahHeaderStyle, colors)
+    }
+    val bannerInk = if (decoration.surahHeader == null && decoration.surahHeaderStyle == SurahHeaderStyle.PLAIN) {
+        colors.bannerText
+    } else {
+        headerColors.headerText
     }
 
     val pageNumberLabel = if (pageNumber != null && pageNumberMaxInk != null && pageNumberMaxInk > 0f) {
@@ -908,6 +994,65 @@ private fun buildPageDrawing(
     } else {
         pitch = heightPx / layout.totalLines
         offsetY = 0f
+    }
+
+    // علامات الأقسام ورأس الصفحة المطبوع — جوّه الإطار وبس، ومع `divisionMarks`.
+    val divisionChrome = decoration.pageFrame && decoration.divisionMarks
+    val markAnchors = if (divisionChrome && pageNumber != null) {
+        markAnchors(
+            marks = MushafDivisions.marksOn(pageNumber),
+            ayahs = ayahs,
+            lineTokens = layout.lines,
+            pitch = pitch,
+            offsetY = offsetY,
+            frameTop = 0f,
+            frameBottom = heightPx,
+            stackDistance = 2f * MARK_MEDALLION_RADIUS * pageNumberUnit,
+        ).map { anchor ->
+            // «ثلاثة» بتقع تحت الحد المقروء في وردة ١١dp فتتبدّل بـ«٣/٤».
+            anchor.copy(
+                label = measurer.measureMarkLabel(
+                    mark = anchor.mark,
+                    color = colors.marker,
+                    maxInkPx = markDiskDiameter(pageNumberUnit) * DEFAULT_PAGE_NUMBER_SCALE,
+                    unit = pageNumberUnit,
+                )
+            )
+        }
+    } else {
+        emptyList()
+    }
+    val firstAyah = ayahs.firstOrNull()
+    val runningSurah = if (divisionChrome) {
+        firstAyah?.let { "سورة " + Quran.surah(it.surah).nameArabic }
+    } else {
+        null
+    }
+    val runningJuzLabel = if (divisionChrome) {
+        firstAyah?.let {
+            // IndoPak بيسمّي الجزء «پارہ» بأرقام شرقية — الباقي «الجزء».
+            if (decoration.frame === PageFrames.IndoPak) indoPakJuzLabel(it.juz)
+            else "الجزء " + toArabicDigits(it.juz)
+        }
+    } else {
+        null
+    }
+    val runningMaxHeight = RUNNING_HEAD_HEIGHT * pageNumberUnit * 0.8f
+    val runningSurahLayout = runningSurah?.let {
+        measurer.fittedLine(
+            text = it,
+            style = mushafTextStyle(RUNNING_HEAD_FONT_SIZE, colors.marker),
+            maxWidth = widthPx * 0.45f,
+            maxHeight = runningMaxHeight,
+        )
+    }
+    val runningJuzLayout = runningJuzLabel?.let {
+        measurer.fittedLine(
+            text = it,
+            style = labelTextStyle(RUNNING_HEAD_FONT_SIZE, colors.marker),
+            maxWidth = widthPx * 0.45f,
+            maxHeight = runningMaxHeight,
+        )
     }
 
     val verses = ArrayList<DrawnVerseLine>()
@@ -952,7 +1097,10 @@ private fun buildPageDrawing(
 
                 // لوحة الشمال: العدد بكلمته فقط (مثل «٧ آيات» — بدون «آياتها»).
                 // لوحة اليمين: «مكية ١» / «مدنية ٢» سطر واحد أوضح وأكبر.
-                val nameMaxWidth = surahNameMaxWidth(widthPx, boxHeight)
+                val nameMaxWidth = when (decoration.surahHeader) {
+                    SurahHeader.Cairo, SurahHeader.IndoPak -> widthPx * 0.55f
+                    else -> surahNameMaxWidth(widthPx, boxHeight)
+                }
                 val nameText = fitted(
                     displayName,
                     { mushafTextStyle(it, bannerInk) },
@@ -964,9 +1112,11 @@ private fun buildPageDrawing(
                 val (panelWidth, panelHeight) = surahCountPanelSize(widthPx, boxHeight)
                 // Classic panels sit on the gold band → use frameLine.
                 // Modern meta is drawn on the teal pill → use headerText.
-                val panelInk = when (decoration.surahHeaderStyle) {
-                    SurahHeaderStyle.MODERN -> frameColors.headerText
-                    else -> frameColors.frameLine
+                val panelInk = when {
+                    decoration.surahHeader == SurahHeader.Cairo ||
+                        decoration.surahHeader == SurahHeader.IndoPak ||
+                        decoration.surahHeaderStyle == SurahHeaderStyle.MODERN -> headerColors.headerText
+                    else -> headerColors.frameLine
                 }
                 val valueStyle = { size: Float -> labelTextStyle(size, panelInk) }
                 val countLayout = fitted(
@@ -985,6 +1135,16 @@ private fun buildPageDrawing(
                     panelHeight * 0.72f,
                 )
 
+                // رقم السورة بأرقام شرقية لدائرة ترويسة IndoPak.
+                val surahNumberLayout = if (decoration.surahHeader == SurahHeader.IndoPak) {
+                    measurer.measure(
+                        AnnotatedString(toEasternDigits(slot.surah)),
+                        labelTextStyle(layout.fontSize * 0.5f, headerColors.headerFill),
+                    )
+                } else {
+                    null
+                }
+
                 banners += DrawnBanner(
                     boxTop = boxTop,
                     boxHeight = boxHeight,
@@ -999,6 +1159,7 @@ private fun buildPageDrawing(
                     revelationLayout = revelationLayout,
                     countCaptionLayout = null,
                     countLayout = countLayout,
+                    surahNumberLayout = surahNumberLayout,
                 )
             }
 
@@ -1036,7 +1197,17 @@ private fun buildPageDrawing(
             }
         }
     }
-    return PageDrawing(verses, banners, basmalas, pageNumberLabel)
+    return PageDrawing(
+        verses = verses,
+        banners = banners,
+        basmalas = basmalas,
+        pageNumberLabel = pageNumberLabel,
+        markAnchors = markAnchors,
+        runningSurah = runningSurah,
+        runningJuzLabel = runningJuzLabel,
+        runningSurahLayout = runningSurahLayout,
+        runningJuzLayout = runningJuzLayout,
+    )
 }
 
 /**
@@ -1069,7 +1240,7 @@ private fun TextMeasurer.measurePageNumber(
     color: Color,
     maxInkPx: Float,
     unit: Float,
-): PageNumberLabel {
+): FittedLabel {
     val density = unit.coerceAtLeast(1e-3f)
     val referencePx = 100f
     var tight = tightDigitBounds(text, referencePx)
@@ -1099,7 +1270,7 @@ private fun TextMeasurer.measurePageNumber(
     // (اتجاه RTL بيخلّي موضع أول حرف على الحافة التانية، فمش بنستخدمه.)
     // رأسيًا الصندوق أطول من الحبر بكتير، فنتمركز على حدود الحبر من خط الأساس.
     val baseline = layout.getLineBaseline(0)
-    return PageNumberLabel(
+    return FittedLabel(
         layout = layout,
         inkCenterX = layout.size.width / 2f,
         inkCenterY = baseline + (tight.top + tight.bottom) / 2f,
@@ -1115,6 +1286,42 @@ private fun tightDigitBounds(text: String, textSizePx: Float): android.graphics.
     val bounds = android.graphics.Rect()
     paint.getTextBounds(text, 0, text.length, bounds)
     return bounds
+}
+
+/**
+ * تسمية وردة علامة القسم على نفس قياس رقم الصفحة. «ثلاثة» لو وقعت تحت
+ * الحد المقروء ([MARK_LABEL_MIN_SIZE]) تتبدّل بـ«٣/٤» — نفس المعنى بحروف
+ * أرقام، متسجّلة في صور الـharness بجوار الشاشة.
+ */
+private fun TextMeasurer.measureMarkLabel(
+    mark: MushafMark,
+    color: Color,
+    maxInkPx: Float,
+    unit: Float,
+): FittedLabel {
+    val label = measurePageNumber(mark.labelArabic, color, maxInkPx, unit)
+    val sizeSp = label.layout.layoutInput.style.fontSize.value
+    return if (mark.kind == DivisionKind.THREE_QUARTERS && sizeSp < MARK_LABEL_MIN_SIZE) {
+        measurePageNumber("٣/٤", color, maxInkPx, unit)
+    } else {
+        label
+    }
+}
+
+/** يقيس سطرًا ويقصّ حجمه على الصندوق المتاح — لرأس الصفحة المطبوع. */
+private fun TextMeasurer.fittedLine(
+    text: String,
+    style: TextStyle,
+    maxWidth: Float,
+    maxHeight: Float,
+): TextLayoutResult {
+    var layout = measure(AnnotatedString(text), style)
+    val scale = min(
+        if (layout.size.width > maxWidth) maxWidth / layout.size.width else 1f,
+        if (layout.size.height > maxHeight) maxHeight / layout.size.height else 1f,
+    )
+    if (scale < 1f) layout = measure(AnnotatedString(text), style.copy(fontSize = style.fontSize * scale))
+    return layout
 }
 
 /** كلمات السطر من اليمين لليسار، والفراغ الزايد بيتوزّع بالتساوي على المسافات. */

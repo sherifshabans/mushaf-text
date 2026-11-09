@@ -69,6 +69,9 @@ fun MushafPager(
     pagePadding: PaddingValues = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
 ) {
     val outerDirection = LocalLayoutDirection.current
+    // الإطار اللي بيملك رأس الصفحة ورقمها بيلغي الأطراف الخارجية — مهما كان
+    // `showHeaders` — عشان الرقم ما يظهرش مرتين.
+    val frameOwnsChrome = decoration.pageFrame && decoration.divisionMarks
     // الصفحة الجاية تيجي من الشمال زي المصحف المطبوع، مهما كانت لغة التطبيق.
     CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
         HorizontalPager(
@@ -84,7 +87,7 @@ fun MushafPager(
                     value = Quran.load(context).filter { it.page == page }
                 }
                 Column(Modifier.fillMaxSize().padding(pagePadding)) {
-                    if (showHeaders) PageHeader(ayahs, colors)
+                    if (showHeaders && !frameOwnsChrome) PageHeader(ayahs, colors)
                     MushafPage(
                         ayahs = ayahs ?: emptyList(),
                         modifier = Modifier.weight(1f).fillMaxWidth(),
@@ -100,7 +103,7 @@ fun MushafPager(
                         onTajweedClick = onTajweedClick,
                         maxFontSize = maxFontSize
                     )
-                    if (showHeaders) PageFooter(page, colors)
+                    if (showHeaders && !frameOwnsChrome) PageFooter(page, colors)
                 }
             }
         }

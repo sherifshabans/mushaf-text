@@ -7,10 +7,15 @@ import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.unit.dp
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -99,6 +104,15 @@ class MushafFrameGeometryTest {
         assertTrue("odd page: wide band on the right", odd.bandRight > odd.bandLeft)
         assertTrue("even page: wide band on the left", even.bandLeft > even.bandRight)
     }
+
+    @Test
+    fun defaultDecorationKeepsTheOrnateFrameAndChromeOff() {
+        val d = MushafDecoration(pageFrame = true)
+        assertTrue(d.frame === PageFrames.Ornate)
+        assertEquals(false, d.divisionMarks)
+        assertEquals(null, d.surahHeader)
+        assertEquals(false, MushafDecoration.None.pageFrame)
+    }
 }
 
 /**
@@ -171,41 +185,98 @@ class MushafDecorationRenderTest {
         // 2: banner + basmala at the top. 76: banner at the bottom. 604: three
         // banners with the longest names, all inside a 15-line page.
         for (page in listOf(2, 76, 604)) {
-            val bitmap = shot(MushafDecoration.Classic, page = page)
-            val density = rule.activity.resources.displayMetrics.density
-            val g = ornateFrameGeometry(
-                bitmap.width.toFloat(), bitmap.height.toFloat(), page, density
-            )
-            val px = IntArray(bitmap.width * bitmap.height)
-            bitmap.getPixels(px, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
-
-            fun inkBetween(x0: Int, x1: Int, y0: Int, y1: Int): Int {
-                var hits = 0
-                for (y in y0.coerceAtLeast(0)..y1.coerceAtMost(bitmap.height - 1)) {
-                    for (x in x0.coerceAtLeast(0)..x1.coerceAtMost(bitmap.width - 1)) {
-                        if (isInk(px[y * bitmap.width + x])) hits++
-                    }
-                }
-                return hits
-            }
-
-            val top = (g.frameTop + 2).toInt()
-            val bottom = (g.frameBottom - 2).toInt()
-            val left = (g.frameLeft + 2).toInt()
-            val innerLeft = (g.innerLeft - 2).toInt()
-            val innerRight = (g.innerRight + 2).toInt()
-            val right = (g.frameRight - 2).toInt()
-
-            assertEquals("page $page: ink left of the inner rule", 0, inkBetween(left, innerLeft, top, bottom))
-            assertEquals("page $page: ink right of the inner rule", 0, inkBetween(innerRight, right, top, bottom))
-
-            // النص موجود فعلًا جوّه الإطار — الاختبار مش بيمرّ على صفحة فاضية.
-            val inside = inkBetween(
-                (g.contentLeft + 4).toInt(), (g.contentLeft + g.contentWidth - 4).toInt(),
-                (g.contentTop + 4).toInt(), (g.contentTop + g.contentHeight - 4).toInt(),
-            )
-            assertTrue("page $page: expected text inside the frame, found none", inside > 500)
+            assertBandClean(MushafDecoration.Classic, page)
         }
+    }
+
+    @Test
+    fun divisionMarksStayOutOfTheInkBandToo() {
+        // الوردات بتترسم على الخط الخارجي — لازم تفضل بلون الزخرفة مش الحبر.
+        for (page in listOf(2, 5, 22, 76, 176, 604)) {
+            assertBandClean(MushafDecoration.Madinah, page)
+        }
+    }
+
+    private fun assertBandClean(decoration: MushafDecoration, page: Int) {
+        val bitmap = shot(decoration, page = page)
+        val density = rule.activity.resources.displayMetrics.density
+        val g = ornateFrameGeometry(
+            bitmap.width.toFloat(), bitmap.height.toFloat(), page, density
+        )
+        val px = IntArray(bitmap.width * bitmap.height)
+        bitmap.getPixels(px, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
+
+        fun inkBetween(x0: Int, x1: Int, y0: Int, y1: Int): Int {
+            var hits = 0
+            for (y in y0.coerceAtLeast(0)..y1.coerceAtMost(bitmap.height - 1)) {
+                for (x in x0.coerceAtLeast(0)..x1.coerceAtMost(bitmap.width - 1)) {
+                    if (isInk(px[y * bitmap.width + x])) hits++
+                }
+            }
+            return hits
+        }
+
+        val top = (g.frameTop + 2).toInt()
+        val bottom = (g.frameBottom - 2).toInt()
+        val left = (g.frameLeft + 2).toInt()
+        val innerLeft = (g.innerLeft - 2).toInt()
+        val innerRight = (g.innerRight + 2).toInt()
+        val right = (g.frameRight - 2).toInt()
+
+        assertEquals("page $page: ink left of the inner rule", 0, inkBetween(left, innerLeft, top, bottom))
+        assertEquals("page $page: ink right of the inner rule", 0, inkBetween(innerRight, right, top, bottom))
+
+        // النص موجود فعلًا جوّه الإطار — الاختبار مش بيمرّ على صفحة فاضية.
+        val inside = inkBetween(
+            (g.contentLeft + 4).toInt(), (g.contentLeft + g.contentWidth - 4).toInt(),
+            (g.contentTop + 4).toInt(), (g.contentTop + g.contentHeight - 4).toInt(),
+        )
+        assertTrue("page $page: expected text inside the frame, found none", inside > 500)
+    }
+
+    @Test
+    fun madinahChromeSuppressesTheOuterHeaderAndFooter() {
+        // الإطار بيملك رقم الصفحة والجزء — الترويسة والتذييل الظاهرين مش متركّبين
+        // حتى مع showHeaders = true.
+        rule.setContent {
+            Box(Modifier.size(pageWidth, pageHeight).background(MushafColors.Light.paper)) {
+                MushafPager(
+                    modifier = Modifier.size(pageWidth, pageHeight),
+                    state = rememberMushafPagerState(initialPage = 2),
+                    colors = MushafColors.Light,
+                    decoration = MushafDecoration.Madinah,
+                    showHeaders = true,
+                )
+            }
+        }
+        rule.waitForIdle()
+        rule.onAllNodesWithText("الجزء ١").assertCountEquals(0)
+        rule.onAllNodesWithText("٢").assertCountEquals(0)
+    }
+
+    @Test
+    fun classicKeepsTheOuterHeaderAndFooter() {
+        rule.setContent {
+            Box(Modifier.size(pageWidth, pageHeight).background(MushafColors.Light.paper)) {
+                MushafPager(
+                    modifier = Modifier.size(pageWidth, pageHeight),
+                    state = rememberMushafPagerState(initialPage = 2),
+                    colors = MushafColors.Light,
+                    decoration = MushafDecoration.Classic,
+                    showHeaders = true,
+                )
+            }
+        }
+        rule.waitForIdle()
+        // الـpager بيركّب الجيران كمان، فالمهم وجود العقد مش عددها.
+        assertTrue(
+            "outer juz header missing",
+            rule.onAllNodesWithText("الجزء ١").fetchSemanticsNodes().isNotEmpty(),
+        )
+        assertTrue(
+            "outer page footer missing",
+            rule.onAllNodesWithText("٢").fetchSemanticsNodes().isNotEmpty(),
+        )
     }
 
     @Test
@@ -234,6 +305,74 @@ class MushafDecorationRenderTest {
         assertTrue("CLASSIC header drew nothing", diff(plainHeader, classic) > 500)
         assertTrue("MODERN header drew nothing", diff(plainHeader, modern) > 500)
         assertTrue("CLASSIC and MODERN must not look alike", diff(classic, modern) > 500)
+    }
+
+    /** يرسم إطار أورنات ويزيح منطقة النص ٤٠ بكسل زيادة — يثبّت إن التخطيط بيقرأ `geometry`. */
+    private class InsetFrame(private val insetPx: Float) : PageFrame {
+        override fun geometry(request: PageFrameRequest): PageFrameGeometry {
+            val g = PageFrames.Ornate.geometry(request)
+            return g.copy(
+                contentLeft = g.contentLeft + insetPx,
+                contentWidth = (g.contentWidth - 2f * insetPx).coerceAtLeast(1f),
+            )
+        }
+
+        override fun DrawScope.draw(geometry: PageFrameGeometry, context: PageFrameContext) {
+            with(PageFrames.Ornate) { draw(geometry, context) }
+        }
+    }
+
+    @Test
+    fun aCustomFrameOwnsTheContentRect() {
+        val ornate = shot(MushafDecoration(pageFrame = true), page = 3)
+        val inset = shot(MushafDecoration(pageFrame = true, frame = InsetFrame(40f)), page = 3)
+        val ornateWidth = inkBoxWidth(ornate)
+        val insetWidth = inkBoxWidth(inset)
+        assertTrue(
+            "layout ignored the custom frame geometry: line width $ornateWidth vs $insetWidth",
+            insetWidth <= ornateWidth - 50,
+        )
+    }
+
+    @Test
+    fun customSurahHeaderOnlyTouchesTheBannerSlot() {
+        val empty = MushafDecoration.Classic.copy(surahHeader = SurahHeader.Custom { })
+        val painted = MushafDecoration.Classic.copy(
+            surahHeader = SurahHeader.Custom {
+                Box(Modifier.fillMaxSize().background(Color.Red))
+            },
+        )
+        val a = shot(empty, page = 2)
+        val b = shot(painted, page = 2)
+
+        val pa = IntArray(a.width * a.height)
+        val pb = IntArray(b.width * b.height)
+        a.getPixels(pa, 0, a.width, 0, 0, a.width, a.height)
+        b.getPixels(pb, 0, b.width, 0, 0, b.width, b.height)
+        var changed = 0
+        for (i in pa.indices) {
+            if (pa[i] != pb[i]) changed++
+            // آيات الصفحة (والبسملة) لازم تفضل زي ما هي تحت الترويسة المخصّصة.
+            if (isInk(pa[i])) assertEquals("custom header covered body ink at pixel $i", pa[i], pb[i])
+        }
+        assertTrue("custom header drew nothing", changed > 500)
+    }
+
+    /** عرض صندوق الحبر — السطور الممدودة بتمتدّ لعرض عمود النص بالظبط. */
+    private fun inkBoxWidth(bitmap: Bitmap): Int {
+        var minX = Int.MAX_VALUE
+        var maxX = Int.MIN_VALUE
+        val px = IntArray(bitmap.width * bitmap.height)
+        bitmap.getPixels(px, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
+        for (y in 0 until bitmap.height) {
+            for (x in 0 until bitmap.width) {
+                if (isInk(px[y * bitmap.width + x])) {
+                    if (x < minX) minX = x
+                    if (x > maxX) maxX = x
+                }
+            }
+        }
+        return (maxX - minX + 1).coerceAtLeast(0)
     }
 
     /** عدد البكسلات المختلفة بين صورتين بنفس المقاس. */

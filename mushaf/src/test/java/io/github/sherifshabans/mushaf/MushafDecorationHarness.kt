@@ -56,6 +56,8 @@ class MushafDecorationHarness {
                     page, "plain",
                     MushafDecoration(pageFrame = true, surahHeaderStyle = SurahHeaderStyle.PLAIN),
                 ),
+                Shot(page, "madinah", MushafDecoration.Madinah),
+                Shot(page, "madinah_dark", MushafDecoration.Madinah, dark = true),
                 Shot(page, "classic_hl", MushafDecoration.Classic, highlighted = true),
                 Shot(page, "classic_dark", MushafDecoration.Classic, highlighted = true, dark = true),
             )

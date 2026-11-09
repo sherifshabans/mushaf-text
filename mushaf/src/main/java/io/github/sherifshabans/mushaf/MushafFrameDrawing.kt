@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.drawText
+import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
@@ -47,15 +48,322 @@ internal const val PAGE_MEDALLION_RADIUS = 16f
 internal const val PAGE_MEDALLION_STAR_FACTOR = 0.74f
 internal const val PAGE_MEDALLION_DISK_FACTOR = 0.92f
 
+/** نصف قطر وردة علامة القسم في الهامش — أصغر من وردة رقم الصفحة. */
+internal const val MARK_MEDALLION_RADIUS = 11f
+
+/** ارتفاع شريط رأس الصفحة المطبوع: السورة يمينًا والجزء شمالًا، جوّه الإطار. */
+internal const val RUNNING_HEAD_HEIGHT = 18f
+
+/** أصغر حجم مقروء لتسمية الوردة؛ عندها تتبدّل «ثلاثة» بـ«٣/٤». */
+internal const val MARK_LABEL_MIN_SIZE = 7f
+
 /** قطر القرص الداخلي لوردة رقم الصفحة بالبكسل، وهو صندوق الحبر الأقصى للرقم. */
 internal fun pageNumberDiskDiameter(unit: Float): Float =
     2f * PAGE_MEDALLION_RADIUS * PAGE_MEDALLION_STAR_FACTOR * PAGE_MEDALLION_DISK_FACTOR * unit
 
-/** رقم الصفحة مقيس على حبر الأرقام، مش على صندوق السطر (خط الأرقام أطول من الحبر). */
-internal class PageNumberLabel(
+/** قطر القرص الداخلي لوردة علامة القسم بالبكسل — صندوق حبر التسمية. */
+internal fun markDiskDiameter(unit: Float): Float =
+    2f * MARK_MEDALLION_RADIUS * PAGE_MEDALLION_STAR_FACTOR * PAGE_MEDALLION_DISK_FACTOR * unit
+
+/**
+ * A label fitted to a medallion's inner disk, positioned by its **ink**.
+ *
+ * The sans face used for digits and labels has a tall em (Arabic marks), so the
+ * line box is much taller than the drawn ink; centre on the ink, not the box.
+ */
+class FittedLabel(
     val layout: TextLayoutResult,
     val inkCenterX: Float,
     val inkCenterY: Float,
+)
+
+/** One drawn verse line's span in canvas pixels, for frames that underline lines. */
+data class LineSpan(val top: Float, val bottom: Float, val left: Float, val right: Float)
+
+/** Everything a [PageFrame] needs to compute its geometry. Pure input. */
+data class PageFrameRequest(
+    val widthPx: Float,
+    val heightPx: Float,
+    val pageNumber: Int,
+    /** Screen density in px per dp — the `unit` the frame draws in. */
+    val density: Float,
+    val outerMargin: Float,
+    val innerMargin: Float,
+    val topMargin: Float,
+    val bottomMargin: Float,
+    val textGap: Float,
+    val divisionMarks: Boolean,
+)
+
+/**
+ * Frame bounds and the content rect, in canvas pixels.
+ *
+ * [contentLeft]/[contentTop] are the origin of the page content: everything
+ * the layout draws at (0, 0) lands inside the frame. The contract for every
+ * [PageFrame]: the content rect ends inside the frame rect and is at least
+ * 1 px wide and tall.
+ */
+data class PageFrameGeometry(
+    val unit: Float,
+    val rightPage: Boolean,
+    val frameLeft: Float,
+    val frameTop: Float,
+    val frameRight: Float,
+    val frameBottom: Float,
+    val contentLeft: Float,
+    val contentTop: Float,
+    val contentWidth: Float,
+    val contentHeight: Float,
+    /** x of the outer rule, where margin medallions are centred. */
+    val markAnchorX: Float,
+)
+
+/** A division mark and the y (canvas px) of the centre of the line it labels. */
+data class MarkAnchor(
+    val mark: MushafMark,
+    val centerY: Float,
+    /** The mark's label fitted to its medallion, measured by the page. */
+    val label: FittedLabel? = null,
+)
+
+/**
+ * What a [PageFrame] may paint, measured by the page before drawing.
+ *
+ * @property pageNumberLabel the page number fitted to the medallion disk, or
+ *   `null` when there is no number to draw.
+ * @property marks division marks with their line anchors (empty unless
+ *   `MushafDecoration.divisionMarks`).
+ * @property runningSurah running-head surah label (right side), or `null`.
+ * @property runningJuzLabel running-head juz label (left side), or `null`.
+ * @property lineSpans the verse lines in canvas pixels, top to bottom.
+ * @property runningSurahLayout the measured running head, ready to draw —
+ *   the built-in frames paint these; hosts may draw [runningSurah] /
+ *   [runningJuzLabel] in their own fonts instead.
+ */
+data class PageFrameContext(
+    val colors: MushafColors,
+    val frameColors: MushafFrameColors,
+    val pageNumber: Int,
+    val pageNumberLabel: FittedLabel?,
+    val marks: List<MarkAnchor>,
+    val runningSurah: String?,
+    val runningJuzLabel: String?,
+    val lineSpans: List<LineSpan>,
+    val runningSurahLayout: TextLayoutResult? = null,
+    val runningJuzLayout: TextLayoutResult? = null,
+)
+
+/**
+ * A page frame: owns the content rect and paints the page's decoration.
+ *
+ * Implementations must keep `geometry` a pure function of the request, keep
+ * the content rect inside the frame, and paint decoration only — never ayah
+ * text. [MushafPage] lays the text out in the content rect and translates the
+ * canvas by `contentLeft`, `contentTop`.
+ */
+interface PageFrame {
+    fun geometry(request: PageFrameRequest): PageFrameGeometry
+
+    fun DrawScope.draw(geometry: PageFrameGeometry, context: PageFrameContext)
+}
+
+/** The frame and header styles shipped with the library. */
+object PageFrames {
+
+    /**
+     * The bead-rope ornate frame of the Madinah pages — the frame 1.5.0 drew,
+     * now behind the [PageFrame] interface.
+     */
+    object Ornate : PageFrame {
+        override fun geometry(request: PageFrameRequest): PageFrameGeometry =
+            ornateFrameGeometry(
+                width = request.widthPx,
+                height = request.heightPx,
+                pageNumber = request.pageNumber,
+                unit = request.density,
+                outerMargin = request.outerMargin,
+                innerMargin = request.innerMargin,
+                topMargin = request.topMargin,
+                bottomMargin = request.bottomMargin,
+                textGap = request.textGap,
+                runningHead = request.divisionMarks,
+            ).toPageFrameGeometry()
+
+        override fun DrawScope.draw(geometry: PageFrameGeometry, context: PageFrameContext) {
+            drawOrnatePageFrame(
+                geometry = geometry.toMushafFrameGeometry(),
+                colors = context.colors,
+                frameColors = context.frameColors,
+                pageNumber = context.pageNumber,
+                pageNumberLabel = context.pageNumberLabel,
+            )
+            drawDivisionMarks(geometry, context)
+            drawRunningHead(geometry, context)
+        }
+    }
+
+    /** The quiet Cairo-family double rule. See [CairoFrame]. */
+    val Cairo: PageFrame get() = CairoFrame
+
+    /** The Diyanet single green rule with floret corners. See [DiyanetFrame]. */
+    val Diyanet: PageFrame get() = DiyanetFrame
+
+    /** The Indo-Pak flat red band with verse underlines. See [IndoPakFrame]. */
+    val IndoPak: PageFrame get() = IndoPakFrame
+}
+
+/**
+ * وردات علامات الأقسام في الهامش — على الخط الخارجي للإطار، بلون الزخرفة
+ * (مش حبر الآيات) عشان اختبار الشريط يفضل صفر.
+ *
+ * @param plainCircle دائرة بسيطة (Cairo) بدل وردة الثمانية.
+ */
+internal fun DrawScope.drawDivisionMarks(
+    geometry: PageFrameGeometry,
+    context: PageFrameContext,
+    frameColors: MushafFrameColors = context.frameColors,
+    plainCircle: Boolean = false,
+) {
+    val unit = geometry.unit
+    context.marks.forEach { anchor ->
+        if (plainCircle) {
+            drawCircle(frameColors.frameBand, MARK_MEDALLION_RADIUS * unit, Offset(geometry.markAnchorX, anchor.centerY))
+            drawCircle(
+                frameColors.frameLine, MARK_MEDALLION_RADIUS * unit,
+                Offset(geometry.markAnchorX, anchor.centerY), style = Stroke(1.3f * unit),
+            )
+        } else {
+            drawRosette(
+                cx = geometry.markAnchorX,
+                cy = anchor.centerY,
+                r = MARK_MEDALLION_RADIUS * unit,
+                fill = frameColors.frameBand,
+                line = frameColors.frameLine,
+                unit = unit,
+            )
+        }
+        anchor.label?.let { label ->
+            drawText(
+                label.layout,
+                topLeft = Offset(
+                    geometry.markAnchorX - label.inkCenterX,
+                    anchor.centerY - label.inkCenterY,
+                ),
+            )
+        }
+    }
+}
+
+/** رأس الصفحة المطبوع في شريطه: السورة يمينًا والجزء شمالًا. */
+internal fun DrawScope.drawRunningHead(
+    geometry: PageFrameGeometry,
+    context: PageFrameContext,
+) {
+    val stripHeight = RUNNING_HEAD_HEIGHT * geometry.unit
+    val stripCenterY = geometry.contentTop - stripHeight / 2f
+    val contentRight = geometry.contentLeft + geometry.contentWidth
+    context.runningSurahLayout?.let { layout ->
+        drawText(
+            layout,
+            topLeft = Offset(contentRight - layout.size.width, stripCenterY - layout.size.height / 2f),
+        )
+    }
+    context.runningJuzLayout?.let { layout ->
+        drawText(
+            layout,
+            topLeft = Offset(geometry.contentLeft, stripCenterY - layout.size.height / 2f),
+        )
+    }
+}
+
+/**
+ * مواضع وردات علامات الأقسام — دالة نقية تتنادى من التخطيط وتتكتب بالاختبارات.
+ *
+ * السطر المستهدف هو سطر الحرف الداخلي (`۞` للربع و`۩` للسجدة)؛ وربع بداية
+ * السورة مالوش حرف فيترسّى على أول كلمة من آيته (سطر البانر فوقه). وردتان
+ * متداخلتان تُزحزح واحدة بقطرها ناحية أقرب حافة مناسبة جوّه الإطار.
+ *
+ * `centerY` في إحداثيات المحتوى (قبل إزاحة `contentTop`)، و[frameTop] /
+ * [frameBottom] حدود الإزاحة الرأسية المسموح بها.
+ */
+internal fun markAnchors(
+    marks: List<MushafMark>,
+    ayahs: List<Ayah>,
+    lineTokens: Map<Int, List<MushafToken>>,
+    pitch: Float,
+    offsetY: Float,
+    frameTop: Float,
+    frameBottom: Float,
+    stackDistance: Float,
+): List<MarkAnchor> {
+    val idOf = HashMap<Pair<Int, Int>, Int>(ayahs.size)
+    ayahs.forEach { idOf[it.surah to it.number] = it.id }
+    val lines = lineTokens.toSortedMap()
+
+    val raw = ArrayList<MarkAnchor>(marks.size)
+    marks.forEach { mark ->
+        val id = idOf[mark.surah to mark.ayah] ?: return@forEach
+        val glyph = if (mark.kind == DivisionKind.SAJDAH) '۩' else '۞'
+        var glyphLine: Int? = null
+        var firstLine: Int? = null
+        for ((line, tokens) in lines) {
+            for (token in tokens) {
+                if (token.ayahId != id) continue
+                if (firstLine == null) firstLine = line
+                if (glyph in token.text) {
+                    glyphLine = line
+                    break
+                }
+            }
+            if (glyphLine != null) break
+        }
+        val line = glyphLine ?: firstLine ?: return@forEach
+        raw += MarkAnchor(mark, centerY = offsetY + pitch * (line - 0.5f))
+    }
+
+    val placed = ArrayList<MarkAnchor>(raw.size)
+    raw.sortedBy { it.centerY }.forEach { anchor ->
+        var y = anchor.centerY
+        var guard = 0
+        while (placed.any { abs(it.centerY - y) < stackDistance } && guard++ < 8) {
+            val up = y - stackDistance
+            val down = y + stackDistance
+            y = when {
+                abs(y - frameTop) <= abs(frameBottom - y) && up >= frameTop -> up
+                down <= frameBottom -> down
+                else -> up
+            }.coerceIn(frameTop, frameBottom)
+        }
+        placed += anchor.copy(centerY = y)
+    }
+    return placed
+}
+
+/** The public geometry of the ornate frame; its medallions sit on the outer rule. */
+internal fun MushafFrameGeometry.toPageFrameGeometry(): PageFrameGeometry = PageFrameGeometry(
+    unit = unit,
+    rightPage = rightPage,
+    frameLeft = frameLeft,
+    frameTop = frameTop,
+    frameRight = frameRight,
+    frameBottom = frameBottom,
+    contentLeft = contentLeft,
+    contentTop = contentTop,
+    contentWidth = contentWidth,
+    contentHeight = contentHeight,
+    markAnchorX = if (rightPage) frameRight else frameLeft,
+)
+
+/** The ornate frame's own view of a public geometry (band/inner from the same constants). */
+internal fun PageFrameGeometry.toMushafFrameGeometry(): MushafFrameGeometry = MushafFrameGeometry(
+    unit = unit,
+    rightPage = rightPage,
+    frameLeft = frameLeft,
+    frameTop = frameTop,
+    frameRight = frameRight,
+    frameBottom = frameBottom,
+    bandLeft = (if (rightPage) BAND_THIN else BAND_OUTER) * unit,
+    bandRight = (if (rightPage) BAND_OUTER else BAND_THIN) * unit,
 )
 
 /**
@@ -74,6 +382,8 @@ internal class MushafFrameGeometry(
     val bandLeft: Float,
     val bandRight: Float,
     textGap: Float = DEFAULT_TEXT_GAP,
+    /** زيادة فوق منطقة النص (شريط الرأس) — صفر إلا مع علامات الأقسام. */
+    topInset: Float = 0f,
 ) {
     val innerLeft: Float = frameLeft + bandLeft
     val innerTop: Float = frameTop + BAND_THIN * unit
@@ -81,7 +391,7 @@ internal class MushafFrameGeometry(
     val innerBottom: Float = frameBottom - BAND_THIN * unit
 
     val contentLeft: Float = innerLeft + textGap * unit
-    val contentTop: Float = innerTop + textGap * unit
+    val contentTop: Float = innerTop + textGap * unit + topInset
     private val contentRight: Float = innerRight - textGap * unit
     private val contentBottom: Float = innerBottom - textGap * unit
 
@@ -103,6 +413,7 @@ internal fun ornateFrameGeometry(
     topMargin: Float = DEFAULT_TOP_MARGIN,
     bottomMargin: Float = DEFAULT_BOTTOM_MARGIN,
     textGap: Float = DEFAULT_TEXT_GAP,
+    runningHead: Boolean = false,
 ): MushafFrameGeometry {
     val rightPage = isRightPage(pageNumber)
     val leftMargin = (if (rightPage) innerMargin else outerMargin) * unit
@@ -117,6 +428,7 @@ internal fun ornateFrameGeometry(
         bandLeft = (if (rightPage) BAND_THIN else BAND_OUTER) * unit,
         bandRight = (if (rightPage) BAND_OUTER else BAND_THIN) * unit,
         textGap = textGap,
+        topInset = if (runningHead) RUNNING_HEAD_HEIGHT * unit else 0f,
     )
 }
 
@@ -141,11 +453,10 @@ private fun DrawScope.diamond(
 internal fun DrawScope.drawOrnatePageFrame(
     geometry: MushafFrameGeometry,
     colors: MushafColors,
-    style: SurahHeaderStyle,
+    frameColors: MushafFrameColors,
     pageNumber: Int,
-    pageNumberLabel: PageNumberLabel? = null,
+    pageNumberLabel: FittedLabel? = null,
 ) {
-    val frameColors = MushafFrameColors.of(style, colors)
     val unit = geometry.unit
     val rightPage = geometry.rightPage
     val frameLeft = geometry.frameLeft
