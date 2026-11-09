@@ -199,6 +199,98 @@ to fill the disk.
 
 ![](docs/styles/dark.png)
 
+### Printed looks: `Madinah`, `Cairo`, `Diyanet`, `IndoPak`
+
+Four presets skin the same pages with the code-drawn frames and surah banners of real
+editions. **The page breaks, the font, and the star positions stay Madinah** — these are
+looks, not different books (no riwayah or layout changes).
+
+```kotlin
+MushafPager(
+    decoration = MushafDecoration.Madinah,   // Classic + division marks
+    // or .Cairo, .Diyanet, .IndoPak
+)
+```
+
+| Preset | Frame | Banner | Extra |
+|---|---|---|---|
+| `Madinah` | bead-rope ornate (the Classic frame) | classic cartouche | margin medallions + running head |
+| `Cairo` | quiet double rule | deep red title bar | circle marks, centered page number |
+| `Diyanet` | one green rule, floret corners | oval green cartouche | rose marks, centered page number |
+| `IndoPak` | flat red band | red bar with the surah number | hairline under every verse line, `پارہ` + eastern digits (U+06F0) |
+
+All four follow `MushafColors`, so `MushafColors.Dark` lifts the palette automatically.
+
+### Division marks (`divisionMarks`)
+
+With a frame on, `divisionMarks = true` draws the printed division chrome: a medallion in
+the outer margin at the line of the `۞` (juz, hizb, rubʿ, nisf, three-quarters) or `۩`
+(sajdah), labelled in the sans face, plus the running head inside the frame (surah on the
+right, juz on the left). The frame then owns the page number and the juz label — hide any
+footer your app draws under the page (`MushafPager` suppresses its own header/footer
+automatically). The table behind it is public:
+
+```kotlin
+MushafDivisions.marksOn(22)   // the juz 2 mark at 2:142
+MushafDivisions.quarters      // all 240
+MushafDivisions.sajdat        // the 15 sajdah positions
+```
+
+### Custom frame and surah header
+
+`MushafDecoration.frame` takes any `PageFrame`: it owns the content rect (`geometry`) and
+paints the decoration (`draw`). `surahHeader` replaces the banner drawer — `Custom` is a
+composable placed in the banner slot and clipped to it.
+
+```kotlin
+class SaloAlehFrame : PageFrame {
+    override fun geometry(request: PageFrameRequest): PageFrameGeometry =
+        PageFrames.Ornate.geometry(request)   // same insets, own paint
+
+    override fun DrawScope.draw(geometry: PageFrameGeometry, context: PageFrameContext) {
+        // rules, a bitmap the app owns, context.marks at markAnchorX / centerY
+    }
+}
+
+MushafDecoration.Classic.copy(
+    divisionMarks = true,
+    frame = SaloAlehFrame(),
+    surahHeader = SurahHeader.Custom {
+        SaloAlehSurahBanner(
+            name = surah.nameArabic,
+            ayahCount = ayahCount,
+            revelation = revelationType.labelArabic,
+        )
+    },
+)
+```
+
+### Turning a leaf (`PageTurn`)
+
+`pageTurn = PageTurn.Curl` peels one leaf the way a bound mushaf does: the fore-edge
+lifts, the back of the sheet shows along the peel, and the next page is revealed
+underneath. The default stays `PageTurn.Slide` (the right-to-left `HorizontalPager`).
+Taps inside the text column stay ayah taps; taps in the frame margin turn the leaf.
+
+```kotlin
+MushafPager(
+    state = rememberMushafPagerState(22),
+    pageTurn = PageTurn.Curl,
+    decoration = MushafDecoration.Madinah,
+)
+```
+
+During a peel, `state.currentPageOffsetFraction` stays `0` — it is **not** the peel
+progress. Callers that need the fraction stay on `PageTurn.Slide`.
+
+### Two-page spread (`MushafSpread`)
+
+`spread = MushafSpread.Auto` shows the page and its pair side by side when the page area
+is at least 600 dp wide: the odd page on the right, its even pair on the left, like the
+open book. Page 1 shows the inside cover on its left. `state.currentPage` keeps
+addressing a single mushaf page. The pair is **static** for now — it does not turn like a
+leaf yet.
+
 ### Highlighting ayahs
 
 ```kotlin
@@ -540,6 +632,96 @@ MushafDecoration.Classic.copy(
 `pageNumberScale = 1f` يملأ القرص.
 
 ![](docs/styles/dark.png)
+
+### الطُرُز المطبوعة: `Madinah` و`Cairo` و`Diyanet` و`IndoPak`
+
+أربع إعدادات جاهزة بتلبّس نفس الصفحات إطارات وترويسات مرسومة بالكود على طراز
+طبعات حقيقية. **كسور السطور والخط ومواضع النجوم تفضل على مصحف المدينة** — دي
+مظاهر لا كتب مختلفة (بدون تغيير الرواية أو التخطيط).
+
+```kotlin
+MushafPager(
+    decoration = MushafDecoration.Madinah,   // كلاسيك + علامات الأقسام
+    // أو .Cairo أو .Diyanet أو .IndoPak
+)
+```
+
+| الإعداد | الإطار | الترويسة | الإضافات |
+|---|---|---|---|
+| `Madinah` | حبل الخرز المزخرف (إطار Classic) | الكارتوث الكلاسيك | وردات الهامش + رأس الصفحة |
+| `Cairo` | قاعدتان هادئتان | شريط عنوان أحمر غامق | وردات دائرية، رقم الصفحة في الوسط |
+| `Diyanet` | قاعدة خضراء واحدة وزوايا بزهرات | كارتوث بيضاوي أخضر | وردات الوردة، رقم الصفحة في الوسط |
+| `IndoPak` | شريط أحمر مسطّح | شريط أحمر برقم السورة | خط شعرة تحت كل سطر آيات، `پارہ` + أرقام شرقية (U+06F0) |
+
+الكل بيتابع `MushafColors`، فـ`MushafColors.Dark` بيرفع الألوان أوتوماتيكي.
+
+### علامات الأقسام (`divisionMarks`)
+
+مع الإطار، `divisionMarks = true` بيرسم زينة الأقسام المطبوعة: وردة في الهامش على
+ارتفاع سطر `۞` (جزء أو حزب أو ربع أو نصف أو ثلاثة) أو `۩` (سجدة)، مكتوبة بخط
+الـsans، ورأس الصفحة جوّه الإطار (السورة يمينًا والجزء شمالًا). الإطار بعدها
+بيملك رقم الصفحة وتسمية الجزء — اخفي أي تذييل ترسمه تحت الصفحة (و`MushafPager`
+بيخفي ترويسته وتذييله أوتوماتيكي). والجدول وراه متاح للتطبيقات:
+
+```kotlin
+MushafDivisions.marksOn(22)   // علامة الجزء ٢ عند ٢:١٤٢
+MushafDivisions.quarters      // الأربعمائة ربع كلها
+MushafDivisions.sajdat        // مواضع السجود الخمسة عشر
+```
+
+### إطار مخصّص وترويسة مخصّصة
+
+`MushafDecoration.frame` بياخد أي `PageFrame`: هو اللي بيملك مساحة النص
+(`geometry`) ويرسم الزينة (`draw`). و`surahHeader` بيحلّ محلّ راسم الترويسة —
+و`Custom` كومبوزابل بيتوضع في خانة البانر ويُقصّ عليها.
+
+```kotlin
+class SaloAlehFrame : PageFrame {
+    override fun geometry(request: PageFrameRequest): PageFrameGeometry =
+        PageFrames.Ornate.geometry(request)   // نفس المسافات ورسم مختلف
+
+    override fun DrawScope.draw(geometry: PageFrameGeometry, context: PageFrameContext) {
+        // قواعد، صورة من التطبيق، context.marks عند markAnchorX / centerY
+    }
+}
+
+MushafDecoration.Classic.copy(
+    divisionMarks = true,
+    frame = SaloAlehFrame(),
+    surahHeader = SurahHeader.Custom {
+        SaloAlehSurahBanner(
+            name = surah.nameArabic,
+            ayahCount = ayahCount,
+            revelation = revelationType.labelArabic,
+        )
+    },
+)
+```
+
+### تقليب الورقة (`PageTurn`)
+
+`pageTurn = PageTurn.Curl` بيقليبل ورقة زي المصحف المركّب: الحافة بترتفع ويظهر
+ظهر الورقة على طول التكشيرة، والصفحة الجاية تتكشف تحت. الافتراضي يفضل
+`PageTurn.Slide` (الانزلاق اليميني-اليساري). اللمسات جوّه عمود النص تفضل لمسات
+آيات، ولمسات الهامش بتقلّب الورقة.
+
+```kotlin
+MushafPager(
+    state = rememberMushafPagerState(22),
+    pageTurn = PageTurn.Curl,
+    decoration = MushafDecoration.Madinah,
+)
+```
+
+أثناء التكشيرة، `state.currentPageOffsetFraction` يفضل `0` — هو **مش** تقدّم
+التكشيرة. اللي محتاج الكسر يفضل على `PageTurn.Slide`.
+
+### الصفحة المزدوجة (`MushafSpread`)
+
+`spread = MushafSpread.Auto` بيبين الصفحة وزوجتها جنب بعض لما مساحة الصفحة تبقى
+٦٠٠dp على الأقل عرضًا: الفردية يمينًا والزوجية شمالًا زي الكتاب المفتوح.
+الصفحة ١ شمالها داخل الكتاب الفاضي. و`state.currentPage` يفضل يعنّي صفحة واحدة.
+الزوجية **ثابتة** حاليًا — لسه ما بتقلّبلش زي الورقة.
 
 ### تظليل الآيات
 

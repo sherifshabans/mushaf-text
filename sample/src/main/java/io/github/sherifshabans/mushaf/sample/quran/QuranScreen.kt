@@ -41,6 +41,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.FormatSize
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
@@ -332,6 +333,7 @@ fun QuranScreen(
     // Navigation pickers.
     var browseTab by remember { mutableStateOf<BrowseTab?>(null) }
     var showAyaSearch by remember { mutableStateOf(false) }
+    var showReaderPreview by remember { mutableStateOf(false) }
 
     // ─── الاستماع ────────────────────────────────────────────────────────
     val playback by audioViewModel.playback.collectAsState()
@@ -496,6 +498,15 @@ fun QuranScreen(
                                 Icon(
                                     Icons.Default.Search,
                                     contentDescription = "بحث في القرآن",
+                                    tint = primary
+                                )
+                            }
+                            // معاينة طُرُز المصحف وطرق التقليب — ورقة تجريبية
+                            // برّا مسار القراءة، والشاشة الأولى تفضل زي ما هي.
+                            IconButton(onClick = { showReaderPreview = true }) {
+                                Icon(
+                                    Icons.Default.Star,
+                                    contentDescription = "معاينة الطُرُز والتقليب",
                                     tint = primary
                                 )
                             }
@@ -859,6 +870,10 @@ fun QuranScreen(
     }
 
     // Word search across the whole Quran.
+    if (showReaderPreview) {
+        ReaderStylePreviewSheet(onClose = { showReaderPreview = false })
+    }
+
     if (showAyaSearch) {
         AyaSearchSheet(
             onSelect = { aya ->

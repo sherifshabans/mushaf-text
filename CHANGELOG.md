@@ -2,11 +2,37 @@
 
 ## Unreleased — page margins, header panels, page number
 
-- **Plan only, no runtime change:** [`docs/roadmap/next-mushaf-reader.md`](docs/roadmap/next-mushaf-reader.md)
-  specifies the next milestone (bound-book page turn, hizb / juz / rubʿ marks
-  on the frame, Cairo / Diyanet / Indo-Pak skins, and host-supplied headers
-  and frames). Nothing in that document is implemented here, and this entry
-  does not ship a version.
+- **Reader milestone implemented** (the work specified in
+  [`docs/roadmap/next-mushaf-reader.md`](docs/roadmap/next-mushaf-reader.md)):
+  - **Public frame/header slots:** `PageFrame`, `PageFrameRequest`,
+    `PageFrameGeometry`, `PageFrameContext`, `FittedLabel`, `LineSpan`, and
+    `SurahHeader` / `SurahHeaderScope`. `MushafDecoration` gains `frame`
+    (default `PageFrames.Ornate`), `divisionMarks` (default `false`), and
+    `surahHeader` (default `null`) — source-compatible defaults that keep the
+    1.5.0 pixels. The data-class constructor carries the usual Kotlin binary
+    story, same as `surahHeaderOverrides` / `pageNumberScale`.
+  - **Division corpus:** `MushafDivisions` ships the 240 Madinah quarters and
+    the 15 sajdah positions; quarter 106 is **15:49**, following the in-line
+    `۞` in `hafs.tsv`, not the sample map's 15:50.
+  - **Division chrome:** `divisionMarks = true` draws the margin medallions
+    (juz / hizb / rubʿ / nisf / three-quarters / sajdah, aligned to the `۞` /
+    `۩` line) and the printed running head inside the frame.
+    `MushafPager` then suppresses its outer header/footer even when
+    `showHeaders` is true. Preset `MushafDecoration.Madinah`.
+  - **Printed looks:** `PageFrames.Cairo` / `.Diyanet` / `.IndoPak` with matching
+    `SurahHeader`s and the `MushafDecoration.Cairo` / `.Diyanet` / `.IndoPak`
+    presets — **skins of the same Madinah pages**: page breaks, font, and star
+    positions do not change.
+  - **Leaf turn:** `MushafPager(pageTurn = PageTurn.Curl)` peels one leaf
+    (fore-edge, back strip, shadow). `state.currentPageOffsetFraction` stays
+    `0` during a peel — it is **not** the peel progress; callers that need the
+    fraction stay on `PageTurn.Slide`. Taps in the text column stay ayah taps.
+  - **Spread:** `MushafSpread.Auto` shows the page and its pair side by side on
+    screens at least 600 dp wide (odd page right, even pair left, page 1 shows
+    the inside cover). The pair is static for now — a leaf turn on a spread is
+    a later task.
+  - **Sample:** an off-by-default preview control for the presets, `PageTurn`,
+    and the spread. The opening screen stays the current reader.
 - **Page number in the frame medallion:** was a hardcoded `0.34 ×` the ayah font
   (about **6–9 sp** on a phone), so the digits sat small inside the rosette.
   The number is now fitted to the ornament. `MushafDecoration.pageNumberScale`

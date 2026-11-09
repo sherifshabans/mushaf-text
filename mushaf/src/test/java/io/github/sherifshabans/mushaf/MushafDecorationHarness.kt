@@ -24,8 +24,16 @@ import java.io.File
  * Renders decorated pages to `mushaf/build/decoration-shots/` with real Skia and the
  * real font — the way to *see* the decoration without an emulator.
  *
+ *     ./gradlew :mushaf:testDebugUnitTest --tests '*MushafDecorationHarness*'
  *     ./gradlew :mushaf:testDebugUnitTest --tests '*MushafDecorationHarness*' \
  *         -Pmushaf.pages=1,2,76,604
+ *
+ * The default page list is the milestone gallery: 5 (rubʿ at 2:26), 22 (juz 2),
+ * 77 (surah opening, no star), 176 (sajdah), 264 (the corrected 15:49), 604 —
+ * for None, Classic, Modern, Plain, and Madinah / Cairo / Diyanet / IndoPak in
+ * light and dark. Note on labels: the `ثلاثة` medallion falls back to `٣/٤`
+ * when the word cannot fit the 11 dp disk at the readable floor size — check
+ * the `three-quarters` shots to see which one a screen density picks.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -45,7 +53,7 @@ class MushafDecorationHarness {
 
     @Test
     fun renderDecoratedPages() {
-        val pages = (System.getProperty("mushaf.pages") ?: "1,2,76,604")
+        val pages = (System.getProperty("mushaf.pages") ?: "5,22,77,176,264,604")
             .split(',').mapNotNull { it.trim().toIntOrNull() }
         val shots = pages.flatMap { page ->
             listOf(
