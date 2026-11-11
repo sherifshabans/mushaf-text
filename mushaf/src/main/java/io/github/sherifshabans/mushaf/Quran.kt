@@ -24,14 +24,37 @@ data class Ayah(
     val text: String
 )
 
-/** A surah with its Arabic and transliterated names and its page range. */
+/**
+ * Whether a surah was revealed in Mecca or Medina.
+ * Values match QuranyApp's `quran.json` / Room `SuraItem.revelationType`
+ * (`"Meccan"` / `"Medinan"`).
+ */
+enum class RevelationType {
+    MECCAN,
+    MEDINAN;
+
+    /** Arabic label for the surah header panel: مكية / مدنية. */
+    val labelArabic: String
+        get() = when (this) {
+            MECCAN -> "مكية"
+            MEDINAN -> "مدنية"
+        }
+
+    companion object {
+        fun fromAppString(value: String?): RevelationType =
+            if (value.equals("Medinan", ignoreCase = true)) MEDINAN else MECCAN
+    }
+}
+
+/** A surah with its Arabic and transliterated names, page range and revelation type. */
 data class Surah(
     val number: Int,
     val nameArabic: String,
     val nameEnglish: String,
     val ayahCount: Int,
     val startPage: Int,
-    val endPage: Int
+    val endPage: Int,
+    val revelationType: RevelationType,
 )
 
 /**
@@ -116,6 +139,18 @@ internal fun parseAyahLine(line: String): Ayah {
 fun toArabicDigits(n: Int): String {
     val digits = "٠١٢٣٤٥٦٧٨٩"
     return n.toString().map { if (it.isDigit()) digits[it - '0'] else it }.joinToString("")
+}
+
+/**
+ * عدد الآيات بكلمته: `7` → `٧ آيات`، `176` → `١٧٦ آية`، `2` → `آيتان`.
+ *
+ * جمع العربية: ٣–١٠ جمع (آيات)، و١١ فأكثر مفرد منصوب (آية).
+ */
+fun ayahCountLabel(count: Int): String = when {
+    count == 1 -> "آية واحدة"
+    count == 2 -> "آيتان"
+    count in 3..10 -> "${toArabicDigits(count)} آيات"
+    else -> "${toArabicDigits(count)} آية"
 }
 
 /** The basmala in the same Uthmanic spelling as the text. */
